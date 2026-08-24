@@ -1,0 +1,25 @@
+{
+  "version": 2,
+  "dgSpecHash": "jC1yXrrgV4Q=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Leno Carvalho\\Documents\\ProjectsGab\\Authdoc\\Authdoc\\Authdoc.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Leno Carvalho\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.9\\microsoft.aspnetcore.openapi.10.0.9.nupkg.sha512",
+    "C:\\Users\\Leno Carvalho\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512",
+    "C:\\Users\\Leno Carvalho\\.nuget\\packages\\system.text.json\\8.0.5\\system.text.json.8.0.5.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'Microsoft.OpenApi' 2.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-v5pm-xwqc-g5wc",
+      "projectPath": "C:\\Users\\Leno Carvalho\\Documents\\ProjectsGab\\Authdoc\\Authdoc\\Authdoc.csproj",
+      "warningLevel": 1,
+      "filePath": "C:\\Users\\Leno Carvalho\\Documents\\ProjectsGab\\Authdoc\\Authdoc\\Authdoc.csproj",
+      "libraryId": "Microsoft.OpenApi",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
+}
