@@ -1,6 +1,11 @@
-﻿namespace Authdoc.Infrastructure.Persistence;
+﻿using Microsoft.EntityFrameworkCore;
 
-public class ManagerDbContext
+namespace Authdoc.Infrastructure.Persistence;
+
+public class ManagerDbContext : DbContext
 {
-    
+    public ManagerDbContext(DbContextOptions<ManagerDbContext> options) : base(options)
+    {
+        
+    }
 }

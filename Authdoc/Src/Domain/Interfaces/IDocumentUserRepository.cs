@@ -3,4 +3,6 @@
 public class IDocumentUserRepository
 {
     
+    public string DocumentCoutry  { get; set; }
+    
 }
