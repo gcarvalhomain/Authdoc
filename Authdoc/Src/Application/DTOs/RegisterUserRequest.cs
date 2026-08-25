@@ -1,4 +1,4 @@
-﻿namespace Authdoc.Application.DTOs;
+﻿namespace Authdoc.Application.Services;
 
 public class RegisterUserRequest
 {

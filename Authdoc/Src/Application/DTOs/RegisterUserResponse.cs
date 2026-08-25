@@ -1,6 +1,6 @@
-﻿namespace Authdoc.Infrastructure.Endpoints.Auth;
+﻿namespace Authdoc.Application.DTOs;
 
-public class RegisterEndpoint
+public class RegisterUserResponse
 {
     public int? Age { get; set; }
     public string? Name { get; set; }

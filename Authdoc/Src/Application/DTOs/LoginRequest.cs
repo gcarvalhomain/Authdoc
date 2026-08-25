@@ -1,6 +1,6 @@
 ﻿namespace Authdoc.Infrastructure.Endpoints.Auth;
 
-public class LoginEndpoint
+public class LoginRequest
 {
     public string? Email  { get; set; }
     public string? Password { get; set; }

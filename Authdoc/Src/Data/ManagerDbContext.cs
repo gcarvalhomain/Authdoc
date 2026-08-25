@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Design;
+﻿using Authdoc.Entities.Domain;
+using Microsoft.EntityFrameworkCore;
 
-namespace Authdoc.Infrastructure.Persistence;
+namespace Authdoc.Data;
 
 public class ManagerDbContext : DbContext
 {
@@ -11,6 +11,7 @@ public class ManagerDbContext : DbContext
     public ManagerDbContext ()
     {
     }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {

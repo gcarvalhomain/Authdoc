@@ -1,4 +1,4 @@
-﻿namespace Authdoc.Domain;
+﻿namespace Authdoc.Entities.Domain;
 
 public abstract class User
 {

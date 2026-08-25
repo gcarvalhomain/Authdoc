@@ -1,4 +1,5 @@
 using Scalar.AspNetCore;
+using Authdoc.Endpoints;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,5 +14,9 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapAuthEndpoints();
 app.UseHttpsRedirection();
 app.Run();
