@@ -210,3 +210,6 @@ C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\t
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.MSBuild.resources.dll
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\runtimes\win\lib\net9.0\System.Windows.Extensions.dll
+C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\obj\Debug\net10.0\Authdoc.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.AspNetCore.OpenApi.dll
+C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.OpenApi.dll

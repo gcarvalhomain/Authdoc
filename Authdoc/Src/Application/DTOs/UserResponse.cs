@@ -1,12 +1,11 @@
-﻿namespace Authdoc.Models.Entities;
+﻿namespace Authdoc.Application.DTOs;
 
-public class User
+public class UserResponse
 {
     public int Age { get; set; }
     public int  Id { get; set; }
     public string Email { get; set; }= string.Empty;
     public string Gender { get; set; }
     public string Name { get; set; }= string.Empty;
-
     
 }

@@ -1,4 +1,4 @@
-﻿using Authdoc.Entities.Domain;
+﻿using Authdoc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Authdoc.Data;
