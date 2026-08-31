@@ -5,7 +5,7 @@ using Authdoc.Application.Services;
 
 namespace Authdoc.Endpoints;
 
-public static class AuthenticateUser
+public static class EndpointsUser
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
@@ -19,6 +19,7 @@ public static class AuthenticateUser
                     Message = "User not found",
                 });
             }
+
             return Results.Ok(user);
         });
         app.MapPost("Api/Users", async (RegisterUserRequest userRequest, UserService userService) =>
@@ -31,10 +32,10 @@ public static class AuthenticateUser
                     Message = validationError,
                 });
             }
-            
+
             var user = await userService.CreateAsync(userRequest);
-            
-            return Results.Created($"/api/auth/{user.Id}", user);
+
+            return Results.Created($"/api/{user.Id}", user);
         });
         app.MapPut("Api/Users/{id}", async (int id, UpdateUserRequest request, UserService userService) =>
         {
@@ -46,6 +47,7 @@ public static class AuthenticateUser
                     Message = validationError
                 });
             }
+
             var emailExists = await userService.EmailExistAsync(request.Email);
             if (emailExists)
             {
@@ -54,6 +56,7 @@ public static class AuthenticateUser
                     Message = "Email already exists"
                 });
             }
+
             var userExist = await userService.UserExistAsync(id, request.Email);
             if (userExist)
             {
@@ -62,7 +65,7 @@ public static class AuthenticateUser
                     Message = "User already exists"
                 });
             }
-            
+
             var update = await userService.UpdateAsync(id, request);
             if (!update)
             {
@@ -71,13 +74,13 @@ public static class AuthenticateUser
                     Message = "User not found"
                 });
             }
+
             var user = await userService.GetByIdAsync(id);
             {
                 return Results.Ok(user);
             }
-            
         });
-        app.MapDelete("Api/Users/{id}", async (int id ,UserService userService) =>
+        app.MapDelete("Api/Users/{id}", async (int id, UserService userService) =>
         {
             var user = await userService.DeleteAsync(id);
             if (!user)
@@ -87,6 +90,7 @@ public static class AuthenticateUser
                     Message = "User not found"
                 });
             }
+
             return Results.NoContent();
         });
     }
@@ -107,7 +111,7 @@ public static class AuthenticateUser
         {
             return "Age is required";
         }
+
         return null;
     }
-    
 }

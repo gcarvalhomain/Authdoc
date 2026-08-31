@@ -97,6 +97,7 @@ public class UserService
     {
         return await _context.Users.AnyAsync(user => user.Email == email);
     }
+
     public async Task<bool> UserExistAsync(int userId, string email)
     {
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id == userId);
