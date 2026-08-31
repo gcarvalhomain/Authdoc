@@ -15,6 +15,6 @@ public class ManagerDbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        optionsBuilder.UseSqlServer("Server=localhost;Database=AuthdocDb;Trusted_Connection=True;TrustServerCertificate=True;;");
+        optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=Authdoc;Trusted_Connection=True;TrustServerCertificate=True;");
     }
 }
