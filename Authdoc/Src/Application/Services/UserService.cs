@@ -2,7 +2,6 @@
 using Authdoc.Data;
 using Microsoft.EntityFrameworkCore;
 using Authdoc.Models.Entities;
-using Microsoft.AspNetCore.Identity;
 
 
 namespace Authdoc.Application.Services;
@@ -40,7 +39,7 @@ public class UserService
         var user = new User()
         {
             Name = request.Name!,
-            Email = request.Email!,
+            Email = request.Email,
             Age = request.Age,
             Gender = request.Gender,
             CreatdAt = DateTime.Now,
@@ -70,7 +69,7 @@ public class UserService
             }
 
             user.Name = request.Name!;
-            user.Email = request.Email!;
+            user.Email = request.Email;
             user.Age = request.Age;
             user.CreatdAt = DateTime.Now;
         }
@@ -98,6 +97,7 @@ public class UserService
     {
         return await _context.Users.AnyAsync(user => user.Email == email);
     }
+
     public async Task<bool> UserExistAsync(int userId, string email)
     {
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id == userId);
