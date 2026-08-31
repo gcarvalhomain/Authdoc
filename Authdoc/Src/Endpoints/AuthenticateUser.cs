@@ -1,6 +1,6 @@
-﻿using Authdoc.Responses;
+﻿using Authdoc.Application.DTOs;
+using Authdoc.Responses;
 using Authdoc.Application.Services;
-using Azure.Core;
 
 
 namespace Authdoc.Endpoints;
@@ -9,7 +9,7 @@ public static class AuthenticateUser
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        app.MapGet("Api/Auth/Get/{id}", async (int id, UserService userService) =>
+        app.MapGet("Api/Users/{id}", async (int id, UserService userService) =>
         {
             var user = await userService.GetByIdAsync(id);
             if (user is null)
@@ -21,12 +21,12 @@ public static class AuthenticateUser
             }
             return Results.Ok(user);
         });
-        app.MapPost("Api/Auth/Post", async (RegisterUserRequest userRequest, UserService userService) =>
+        app.MapPost("Api/Users", async (RegisterUserRequest userRequest, UserService userService) =>
         {
             var validationError = ValidateUser(userRequest.Name, userRequest.Email, userRequest.Age);
             if (validationError is not null)
             {
-                return Results.BadRequest(new ErrorResponse()
+                return Results.BadRequest(new ErrorResponse
                 {
                     Message = validationError,
                 });
@@ -36,9 +36,62 @@ public static class AuthenticateUser
             
             return Results.Created($"/api/auth/{user.Id}", user);
         });
+        app.MapPut("Api/Users/{id}", async (int id, UpdateUserRequest request, UserService userService) =>
+        {
+            var validationError = ValidateUser(request.Name, request.Email, request.Age);
+            if (validationError is not null)
+            {
+                return Results.BadRequest(new ErrorResponse
+                {
+                    Message = validationError
+                });
+            }
+            var emailExists = await userService.EmailExistAsync(request.Email);
+            if (emailExists)
+            {
+                return Results.Conflict(new ErrorResponse
+                {
+                    Message = "Email already exists"
+                });
+            }
+            var userExist = await userService.UserExistAsync(id, request.Email);
+            if (userExist)
+            {
+                return Results.Conflict(new ErrorResponse
+                {
+                    Message = "User already exists"
+                });
+            }
+            
+            var update = await userService.UpdateAsync(id, request);
+            if (!update)
+            {
+                return Results.BadRequest(new ErrorResponse
+                {
+                    Message = "User not found"
+                });
+            }
+            var user = await userService.GetByIdAsync(id);
+            {
+                return Results.Ok(user);
+            }
+            
+        });
+        app.MapDelete("Api/Users/{id}", async (int id ,UserService userService) =>
+        {
+            var user = await userService.DeleteAsync(id);
+            if (!user)
+            {
+                return Results.NotFound(new ErrorResponse
+                {
+                    Message = "User not found"
+                });
+            }
+            return Results.NoContent();
+        });
     }
 
-    public static string? ValidateUser(string? name, string email, int age)
+    static string? ValidateUser(string? name, string email, int age)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
