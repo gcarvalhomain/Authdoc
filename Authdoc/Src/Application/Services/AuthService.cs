@@ -74,8 +74,8 @@ public class AuthService
 
     private LoginResponse GenerateJwtToken(User user)
     {
-        var key = _configuration["JwtKey"];
-        var issuer = _configuration["JwtIssuer"];
+        var key = _configuration["Jwt:Key"];
+        var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:audience"];
         var expirationInMinutes = int.Parse(_configuration["Jwt:exp"]!);
 
