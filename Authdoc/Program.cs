@@ -28,6 +28,7 @@ if (app.Environment.IsDevelopment())
     app.UseAuthorization();
 
     app.MapAuthEndpoints();
+    app.MapUserEndpoints();
     app.UseHttpsRedirection();
     app.Run();
 }
