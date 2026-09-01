@@ -1,4 +1,4 @@
-﻿namespace Authdoc.Entities.Models;
+﻿namespace Authdoc.Models.Entities;
 
 public class DocumentsUser
 {

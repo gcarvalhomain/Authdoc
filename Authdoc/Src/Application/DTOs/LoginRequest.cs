@@ -1,4 +1,4 @@
-﻿namespace Authdoc.Infrastructure.Endpoints.Auth;
+﻿namespace Authdoc.Application.DTOs;
 
 public class LoginRequest
 {

@@ -7,7 +7,7 @@ namespace Authdoc.Endpoints;
 
 public static class EndpointsUser
 {
-    public static void MapAuthEndpoints(this WebApplication app)
+    public static void MapUserEndpoints(this WebApplication app)
     {
         app.MapGet("Api/Users/{id}", async (int id, UserService userService) =>
         {
