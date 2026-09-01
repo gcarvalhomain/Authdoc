@@ -1,8 +1,12 @@
-﻿using Authdoc.Application.DTOs;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Authdoc.Application.Services;
 
@@ -47,6 +51,57 @@ public class AuthService
             Age = user.Age,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = user.UpdatedAt
+        };
+    }
+
+    public async Task<LoginResponse?> LoginAsync(LoginRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(user => user.Email == request.Email);
+        if (user is null)
+        {
+            return null;
+        }
+        var result = _passwordHasher.VerifyHashedPassword(
+            user,
+            request.Password!,
+            user.PasswordHash);
+        if (result == PasswordVerificationResult.Failed)
+        {
+            return null;
+        }
+        return GenerateJwtToken(user);
+    }
+
+    private LoginResponse GenerateJwtToken(User user)
+    {
+        var key = _configuration["JwtKey"];
+        var issuer = _configuration["JwtIssuer"];
+        var audience = _configuration["Jwt:audience"];
+        var expirationInMinutes = int.Parse(_configuration["Jwt:exp"]!);
+
+        var expiresAt = DateTime.UtcNow.AddMinutes(expirationInMinutes);
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Name),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role),
+        };
+        var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!));
+        var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: claims,
+            expires: expiresAt,
+            signingCredentials:  credentials
+        );
+        return new LoginResponse
+        {
+            Token = new JwtSecurityTokenHandler().WriteToken(token),
+            ExpiresAt = expiresAt
         };
     }
 }
