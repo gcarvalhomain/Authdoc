@@ -213,3 +213,4 @@ C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\r
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\obj\Debug\net10.0\Authdoc.MvcApplicationPartsAssemblyInfo.cs
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.AspNetCore.OpenApi.dll
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.OpenApi.dll
+C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll

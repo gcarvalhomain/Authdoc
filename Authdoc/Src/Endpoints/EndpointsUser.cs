@@ -36,7 +36,8 @@ public static class EndpointsUser
             var user = await userService.CreateAsync(userRequest);
 
             return Results.Created($"/api/{user.Id}", user);
-        });
+        })
+        .RequireAuthorization( );
         app.MapPut("Api/Users/{id}", async (int id, UpdateUserRequest request, UserService userService) =>
         {
             var validationError = ValidateUser(request.Name, request.Email, request.Age);
@@ -79,7 +80,8 @@ public static class EndpointsUser
             {
                 return Results.Ok(user);
             }
-        });
+        })
+        .RequireAuthorization();
         app.MapDelete("Api/Users/{id}", async (int id, UserService userService) =>
         {
             var user = await userService.DeleteAsync(id);
@@ -92,7 +94,9 @@ public static class EndpointsUser
             }
 
             return Results.NoContent();
-        });
+        })
+        .RequireAuthorization("Admin");
+        
     }
 
     static string? ValidateUser(string? name, string email, int age)
