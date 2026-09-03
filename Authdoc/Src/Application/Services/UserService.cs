@@ -36,7 +36,7 @@ public class UserService
 
     public async Task<RegisterUserResponse> CreateAsync(RegisterUserRequest request)
     {
-        var user = new User()
+        var user = new User
         {
             Name = request.Name!,
             Email = request.Email,
@@ -48,7 +48,7 @@ public class UserService
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return new RegisterUserResponse()
+        return new RegisterUserResponse
         {
             Id = user.Id,
             Name = user.Name,
