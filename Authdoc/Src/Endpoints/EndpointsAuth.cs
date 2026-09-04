@@ -1,8 +1,8 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
 using Authdoc.Responses;
-using Microsoft.IdentityModel.Tokens.Experimental;
 
 namespace Authdoc.Endpoints;
 
@@ -20,7 +20,51 @@ public static class EndpointsAuth
                     Message = validationError
                 });
             }
-            return null;
+            var user = await authService.RegisterAsync(request);
+            if (user is null)
+            {
+                return Results.Conflict(new ErrorResponse
+                {
+                    Message = "Email already exists"
+                });
+            }
+            return Results.Created($"/api/auth/{user.Id}", user);
+        });
+        app.MapPost("Api/Auth", async (LoginRequest request, AuthService authService) =>
+        {
+            var valdiationError = ValidateLogin(request);
+            if (valdiationError is not null)
+            {
+                return Results.BadRequest(new ErrorResponse
+                {
+                    Message = valdiationError
+                });
+            }
+
+            var user = await authService.LoginAsync(request);
+            if (user is null)
+            {
+                return Results.BadRequest(new ErrorResponse
+                {
+                    Message = "Username or password is incorrect"
+                });
+            }
+
+            return Results.Ok(user);
+        });
+        app.MapGet("Api/Auth/Token", async (ClaimsPrincipal user) =>
+        {
+            var id = user.FindFirst(ClaimTypes.NameIdentifier);
+            var name = user.FindFirst(ClaimTypes.Name);
+            var email = user.FindFirst(ClaimTypes.Email);
+
+            return Results.Ok(new
+            {
+                Id = id,
+                Name = name,
+                Email = email
+
+            });
         });
     }
 
@@ -55,6 +99,20 @@ public static class EndpointsAuth
             !Regex.IsMatch(request.Password, "[!@#$%^&*(),.?\\\":{}|<>]"))
         {
             return "Password must consist only of letters and digits";
+        }
+        return null;
+    }
+
+    public static string? ValidateLogin(LoginRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return "Email  is required";
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Password))
+        {
+            return "Password is required";
         }
         return null;
     }

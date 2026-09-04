@@ -50,12 +50,9 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 
+    
     app.UseAuthentication();
     app.UseAuthorization();
-    app.MapGet("/perfil", (ClaimsPrincipal user) =>
-    {
-        return Results.Ok(new { nome = user.Identity!.Name });
-    });
     app.MapAuthEndpoints();
     app.MapUserEndpoints();
     app.UseHttpsRedirection();
