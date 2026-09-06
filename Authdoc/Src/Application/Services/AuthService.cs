@@ -13,10 +13,10 @@ namespace Authdoc.Application.Services;
 public class AuthService
 {
     private readonly ManagerDbContext _context;
-    private readonly PasswordHasher<User>  _passwordHasher;
+    private readonly IPasswordHasher<User>  _passwordHasher;
     private readonly IConfiguration  _configuration;
 
-    public AuthService(ManagerDbContext context, PasswordHasher<User> passwordHasher,  IConfiguration configuration)
+    public AuthService(ManagerDbContext context, IPasswordHasher<User> passwordHasher,  IConfiguration configuration)
     {
         _context = context;
         _passwordHasher = passwordHasher;
@@ -38,7 +38,7 @@ public class AuthService
             Age = request.Age,
             CreatdAt = DateTime.UtcNow,
         };
-
+        
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -50,7 +50,7 @@ public class AuthService
             Name = user.Name,
             Age = user.Age,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = user.UpdatedAt
+            UpdatedAt = user.UpdatedAt,
         };
     }
 
@@ -63,8 +63,8 @@ public class AuthService
         }
         var result = _passwordHasher.VerifyHashedPassword(
             user,
-            request.Password!,
-            user.PasswordHash);
+            user.PasswordHash,
+            request.Password);
         if (result == PasswordVerificationResult.Failed)
         {
             return null;
@@ -83,10 +83,10 @@ public class AuthService
 
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name, user.Name),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role),
+            new (ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new (ClaimTypes.Name, user.Name),
+            new (ClaimTypes.Email, user.Email),
+            new (ClaimTypes.Role, user.Role),
         };
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -101,7 +101,17 @@ public class AuthService
         return new LoginResponse
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
-            ExpiresAt = expiresAt
+            ExpiresAt = expiresAt,
+            User = new UserResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Age = user.Age,
+                Gender = user.Gender,
+                CreatedAt = user.CreatdAt,
+                UpdatedAt = user.UpdatedAt
+            }
         };
     }
 }

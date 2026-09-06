@@ -1,17 +1,20 @@
-using System.Security.Claims;
 using System.Text;
 using Authdoc.Application.Services;
 using Authdoc.Data;
 using Scalar.AspNetCore;
 using Authdoc.Endpoints;
+using Authdoc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddDbContext<ManagerDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")) );
 builder.Services.AddAuthentication(options =>
