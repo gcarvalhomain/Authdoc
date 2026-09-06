@@ -10,7 +10,7 @@ public static class EndpointsAuth
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        app.MapGet("Api/Auth/{id}", async (RegisterUserRequest request, AuthService authService) =>
+        app.MapPost("Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
         {
             var validationError = ValidateRegister(request);
             if (validationError is not null)
@@ -20,6 +20,7 @@ public static class EndpointsAuth
                     Message = validationError
                 });
             }
+
             var user = await authService.RegisterAsync(request);
             if (user is null)
             {
@@ -28,21 +29,22 @@ public static class EndpointsAuth
                     Message = "Email already exists"
                 });
             }
+
             return Results.Created($"/api/auth/{user.Id}", user);
         });
-        app.MapPost("Api/Auth", async (LoginRequest request, AuthService authService) =>
+        app.MapPost("Api/Auth/login", async (LoginRequest request, AuthService authService) =>
         {
-            var valdiationError = ValidateLogin(request);
-            if (valdiationError is not null)
+            var validationError = ValidateLogin(request);
+            if (validationError is not null)
             {
                 return Results.BadRequest(new ErrorResponse
                 {
-                    Message = valdiationError
+                    Message = validationError
                 });
             }
 
-            var user = await authService.LoginAsync(request);
-            if (user is null)
+            var loginResponse = await authService.LoginAsync(request);
+            if (loginResponse is null)
             {
                 return Results.BadRequest(new ErrorResponse
                 {
@@ -50,9 +52,9 @@ public static class EndpointsAuth
                 });
             }
 
-            return Results.Ok(user);
+            return Results.Ok(loginResponse);
         });
-        app.MapGet("Api/Auth/Token", async (ClaimsPrincipal user) =>
+        app.MapGet("Api/Auth/Me", (ClaimsPrincipal user) =>
         {
             var id = user.FindFirst(ClaimTypes.NameIdentifier);
             var name = user.FindFirst(ClaimTypes.Name);
@@ -63,9 +65,9 @@ public static class EndpointsAuth
                 Id = id,
                 Name = name,
                 Email = email
-
             });
-        });
+        })
+        .RequireAuthorization();
     }
 
     public static string? ValidateRegister(RegisterUserRequest request)
@@ -95,7 +97,7 @@ public static class EndpointsAuth
         }
 
         if (!Regex.IsMatch(request.Password, "[^a-zA-Z0-9]") ||
-            !Regex.IsMatch(request.Email, "[0-9]") ||
+            !Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") ||
             !Regex.IsMatch(request.Password, "[!@#$%^&*(),.?\\\":{}|<>]"))
         {
             return "Password must consist only of letters and digits";

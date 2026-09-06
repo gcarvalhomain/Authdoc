@@ -34,31 +34,6 @@ public class UserService
         };
     }
 
-    public async Task<RegisterUserResponse> CreateAsync(RegisterUserRequest request)
-    {
-        var user = new User
-        {
-            Name = request.Name!,
-            Email = request.Email,
-            Age = request.Age,
-            Gender = request.Gender,
-            CreatdAt = DateTime.Now,
-        };
-
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        return new RegisterUserResponse
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            Age = user.Age,
-            CreatdAt = user.CreatdAt,
-            UpdatedAt = user.UpdatedAt
-        };
-    }
-
     public async Task<bool> UpdateAsync(int id, UpdateUserRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);

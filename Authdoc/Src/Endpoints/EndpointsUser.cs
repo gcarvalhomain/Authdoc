@@ -22,81 +22,64 @@ public static class EndpointsUser
 
             return Results.Ok(user);
         });
-        app.MapPost("Api/Users", async (RegisterUserRequest userRequest, UserService userService) =>
-        {
-            var validationError = ValidateUser(userRequest.Name, userRequest.Email, userRequest.Age);
-            if (validationError is not null)
-            {
-                return Results.BadRequest(new ErrorResponse
-                {
-                    Message = validationError,
-                });
-            }
-
-            var user = await userService.CreateAsync(userRequest);
-
-            return Results.Created($"/api/{user.Id}", user);
-        })
-        .RequireAuthorization("Admin");
         app.MapPut("Api/Users/{id}", async (int id, UpdateUserRequest request, UserService userService) =>
-        {
-            var validationError = ValidateUser(request.Name, request.Email, request.Age);
-            if (validationError is not null)
             {
-                return Results.BadRequest(new ErrorResponse
+                var validationError = ValidateUser(request.Name, request.Email, request.Age);
+                if (validationError is not null)
                 {
-                    Message = validationError
-                });
-            }
+                    return Results.BadRequest(new ErrorResponse
+                    {
+                        Message = validationError
+                    });
+                }
 
-            var emailExists = await userService.EmailExistAsync(request.Email);
-            if (emailExists)
-            {
-                return Results.Conflict(new ErrorResponse
+                var emailExists = await userService.EmailExistAsync(request.Email);
+                if (emailExists)
                 {
-                    Message = "Email already exists"
-                });
-            }
+                    return Results.Conflict(new ErrorResponse
+                    {
+                        Message = "Email already exists"
+                    });
+                }
 
-            var userExist = await userService.UserExistAsync(id, request.Email);
-            if (userExist)
-            {
-                return Results.Conflict(new ErrorResponse
+                var userExist = await userService.UserExistAsync(id, request.Email);
+                if (userExist)
                 {
-                    Message = "User already exists"
-                });
-            }
+                    return Results.Conflict(new ErrorResponse
+                    {
+                        Message = "User already exists"
+                    });
+                }
 
-            var update = await userService.UpdateAsync(id, request);
-            if (!update)
-            {
-                return Results.BadRequest(new ErrorResponse
+                var update = await userService.UpdateAsync(id, request);
+                if (!update)
                 {
-                    Message = "User not found"
-                });
-            }
+                    return Results.BadRequest(new ErrorResponse
+                    {
+                        Message = "User not found"
+                    });
+                }
 
-            var user = await userService.GetByIdAsync(id);
-            {
-                return Results.Ok(user);
-            }
-        })
-        .RequireAuthorization();
+                var user = await userService.GetByIdAsync(id);
+                {
+                    return Results.Ok(user);
+                }
+            })
+            .RequireAuthorization("Admin");
         app.MapDelete("Api/Users/{id}", async (int id, UserService userService) =>
-        {
-            var user = await userService.DeleteAsync(id);
-            if (!user)
             {
-                return Results.NotFound(new ErrorResponse
+                var user = await userService.DeleteAsync(id);
+                if (!user)
                 {
-                    Message = "User not found"
-                });
-            }
+                    return Results.NotFound(new ErrorResponse
+                    {
+                        Message = "User not found"
+                    });
+                }
 
-            return Results.NoContent();
-        })
-        .RequireAuthorization("Admin");
-        
+                return Results.NoContent();
+            })
+            .RequireAuthorization("Admin");
     }
 
     static string? ValidateUser(string? name, string email, int age)
