@@ -36,10 +36,13 @@ public class AuthService
             Name = request.Name!,
             Email = request.Email,
             Age = request.Age,
+            Gender = request.Gender,
+            PasswordHash = request.PasswordHash,
             CreatedAt = DateTime.UtcNow,
+            Role = "User"
         };
         
-        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.PasswordHash);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
