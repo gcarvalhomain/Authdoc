@@ -1,7 +1,6 @@
 ﻿using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Microsoft.EntityFrameworkCore;
-using Authdoc.Models.Entities;
 
 
 namespace Authdoc.Application.Services;
@@ -46,7 +45,7 @@ public class UserService
             user.Name = request.Name!;
             user.Email = request.Email;
             user.Age = request.Age;
-            user.CreatdAt = DateTime.Now;
+            user.CreatedAt = DateTime.Now;
         }
         await _context.SaveChangesAsync();
         return true;
@@ -68,13 +67,8 @@ public class UserService
         }
     }
 
-    public async Task<bool> EmailExistAsync(string email)
+    public async Task<bool> EmailBelongsToAnotherUserAsync(int id, string email)
     {
-        return await _context.Users.AnyAsync(user => user.Email == email);
-    }
-
-    public async Task<bool> UserExistAsync(int userId, string email)
-    {
-        return await _context.Users.AnyAsync(user => user.Email == email && user.Id == userId);
+        return await _context.Users.AnyAsync(user => user.Email == email && user.Id != id);
     }
 }

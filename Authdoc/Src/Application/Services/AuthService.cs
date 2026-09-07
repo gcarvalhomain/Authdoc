@@ -5,8 +5,10 @@ using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using LoginRequest = Authdoc.Application.DTOs.LoginRequest;
 
 namespace Authdoc.Application.Services;
 
@@ -23,6 +25,33 @@ public class AuthService
         _configuration = configuration;
     }
 
+    public async Task<UserResponse?> RegisterAdminAsync(RegisterAdminRequest request)
+    {
+        var user = new User
+        {
+            Name = request.Name,
+            Email = request.Email,
+            Age = request.Age,
+            Gender = request.Gender,
+            CreatedAt = DateTime.UtcNow,
+            PasswordHash = request.PasswordHash,
+            Role = "Admin"
+        };
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.PasswordHash);
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new UserResponse
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Name = user.Name,
+            Age = user.Age,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
+        };
+    }
+
     public async Task<UserResponse?> RegisterAsync(RegisterUserRequest  request)
     {
         var emailExists = await _context.Users.AnyAsync(user => user.Email == request.Email );
@@ -33,13 +62,16 @@ public class AuthService
 
         var user = new User
         {
-            Name = request.Name!,
+            Name = request.Name,
             Email = request.Email,
             Age = request.Age,
-            CreatdAt = DateTime.UtcNow,
+            Gender = request.Gender,
+            PasswordHash = request.PasswordHash,
+            CreatedAt = DateTime.UtcNow,
+            Role = "User"
         };
         
-        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.PasswordHash);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
@@ -50,7 +82,7 @@ public class AuthService
             Name = user.Name,
             Age = user.Age,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = user.UpdatedAt,
+            UpdatedAt = user.UpdatedAt
         };
     }
 
@@ -77,7 +109,7 @@ public class AuthService
         var key = _configuration["Jwt:Key"];
         var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:audience"];
-        var expirationInMinutes = int.Parse(_configuration["Jwt:exp"]!);
+        var expirationInMinutes = int.Parse(_configuration["Jwt:ExpirationInMinutes"]!);
 
         var expiresAt = DateTime.UtcNow.AddMinutes(expirationInMinutes);
 
@@ -109,7 +141,7 @@ public class AuthService
                 Email = user.Email,
                 Age = user.Age,
                 Gender = user.Gender,
-                CreatedAt = user.CreatdAt,
+                CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
             }
         };

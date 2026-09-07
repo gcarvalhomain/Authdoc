@@ -10,6 +10,13 @@ public static class EndpointsAuth
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
+        app.MapPost("/Api/Auth/RegisterAdmin", async (RegisterAdminRequest request, AuthService authService) =>
+            {
+                var result = await authService.RegisterAdminAsync(request);
+                return Results.Ok(result);
+            })
+            .RequireAuthorization("Admin");
+
         app.MapPost("Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
         {
             var validationError = ValidateRegister(request);
@@ -31,43 +38,45 @@ public static class EndpointsAuth
             }
 
             return Results.Created($"/api/auth/{user.Id}", user);
-        });
-        app.MapPost("Api/Auth/login", async (LoginRequest request, AuthService authService) =>
-        {
-            var validationError = ValidateLogin(request);
-            if (validationError is not null)
-            {
-                return Results.BadRequest(new ErrorResponse
-                {
-                    Message = validationError
-                });
-            }
-
-            var loginResponse = await authService.LoginAsync(request);
-            if (loginResponse is null)
-            {
-                return Results.BadRequest(new ErrorResponse
-                {
-                    Message = "Username or password is incorrect"
-                });
-            }
-
-            return Results.Ok(loginResponse);
-        });
-        app.MapGet("Api/Auth/Me", (ClaimsPrincipal user) =>
-        {
-            var id = user.FindFirst(ClaimTypes.NameIdentifier);
-            var name = user.FindFirst(ClaimTypes.Name);
-            var email = user.FindFirst(ClaimTypes.Email);
-
-            return Results.Ok(new
-            {
-                Id = id,
-                Name = name,
-                Email = email
-            });
         })
-        .RequireAuthorization();
+        .RequireAuthorization("Admin");
+        app.MapPost("Api/Auth/login", async (LoginRequest request, AuthService authService) =>
+            {
+                var validationError = ValidateLogin(request);
+                if (validationError is not null)
+                {
+                    return Results.BadRequest(new ErrorResponse
+                    {
+                        Message = validationError
+                    });
+                }
+
+                var loginResponse = await authService.LoginAsync(request);
+                if (loginResponse is null)
+                {
+                    return Results.BadRequest(new ErrorResponse
+                    {
+                        Message = "Username or password is incorrect"
+                    });
+                }
+
+                return Results.Ok(loginResponse);
+            })
+            .RequireAuthorization("Admin");
+        app.MapGet("Api/Auth/Me", (ClaimsPrincipal user) =>
+            {
+                var id = user.FindFirst(ClaimTypes.NameIdentifier);
+                var name = user.FindFirst(ClaimTypes.Name);
+                var email = user.FindFirst(ClaimTypes.Email);
+
+                return Results.Ok(new
+                {
+                    Id = id,
+                    Name = name,
+                    Email = email
+                });
+            })
+            .RequireAuthorization("Admin");
     }
 
     public static string? ValidateRegister(RegisterUserRequest request)
@@ -77,7 +86,7 @@ public static class EndpointsAuth
             return "Name is required";
         }
 
-        if (string.IsNullOrWhiteSpace(request.Password))
+        if (string.IsNullOrWhiteSpace(request.PasswordHash))
         {
             return "Password is required";
         }
@@ -87,21 +96,28 @@ public static class EndpointsAuth
             return "Email is required";
         }
 
+        if (string.IsNullOrWhiteSpace(request.Gender))
+        {
+            return "Gender is required";
+        }
+
         if (request.Age <= 18)
         {
             return "Age must be 18 years old";
         }
-        if(request.Password.Length < 6)
+
+        if (request.PasswordHash.Length < 6)
         {
-          return "Password must be at least 6 characters long";  
+            return "Password must be at least 6 characters long";
         }
 
-        if (!Regex.IsMatch(request.Password, "[^a-zA-Z0-9]") ||
+        if (!Regex.IsMatch(request.PasswordHash, "[^a-zA-Z0-9]") ||
             !Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") ||
-            !Regex.IsMatch(request.Password, "[!@#$%^&*(),.?\\\":{}|<>]"))
+            !Regex.IsMatch(request.PasswordHash, "[!@#$%^&*(),.?\\\":{}|<>]"))
         {
             return "Password must consist only of letters and digits";
         }
+
         return null;
     }
 
@@ -116,6 +132,7 @@ public static class EndpointsAuth
         {
             return "Password is required";
         }
+
         return null;
     }
 }
