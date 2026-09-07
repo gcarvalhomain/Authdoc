@@ -3,6 +3,7 @@ using Authdoc.Responses;
 using Authdoc.Application.Services;
 
 
+
 namespace Authdoc.Endpoints;
 
 public static class EndpointsUser
@@ -24,7 +25,7 @@ public static class EndpointsUser
         });
         app.MapPut("Api/Users/{id}", async (int id, UpdateUserRequest request, UserService userService) =>
             {
-                var validationError = ValidateUser(request.Name, request.Email, request.Age);
+                var validationError = ValidateUpdate(request);
                 if (validationError is not null)
                 {
                     return Results.BadRequest(new ErrorResponse
@@ -32,17 +33,8 @@ public static class EndpointsUser
                         Message = validationError
                     });
                 }
-
-                var emailExists = await userService.EmailExistAsync(request.Email);
-                if (emailExists)
-                {
-                    return Results.Conflict(new ErrorResponse
-                    {
-                        Message = "Email already exists"
-                    });
-                }
-
-                var userExist = await userService.UserExistAsync(id, request.Email);
+                
+                var userExist = await userService.EmailBelongsToAnotherUserAsync(id, request.Email);
                 if (userExist)
                 {
                     return Results.Conflict(new ErrorResponse
@@ -82,23 +74,17 @@ public static class EndpointsUser
             .RequireAuthorization("Admin");
     }
 
-    static string? ValidateUser(string? name, string email, int age)
+    public static string? ValidateUpdate(UpdateUserRequest request)
     {
-        if (string.IsNullOrWhiteSpace(name))
-        {
-            return "Name is required";
-        }
-
-        if (string.IsNullOrWhiteSpace(email))
+        if (string.IsNullOrWhiteSpace(request.Email))
         {
             return "Email is required";
         }
 
-        if (age <= 0)
+        if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return "Age is required";
+            return "Name is required";
         }
-
         return null;
     }
 }

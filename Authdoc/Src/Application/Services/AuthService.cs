@@ -36,7 +36,7 @@ public class AuthService
             Name = request.Name!,
             Email = request.Email,
             Age = request.Age,
-            CreatdAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
         };
         
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
@@ -109,7 +109,7 @@ public class AuthService
                 Email = user.Email,
                 Age = user.Age,
                 Gender = user.Gender,
-                CreatedAt = user.CreatdAt,
+                CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
             }
         };
