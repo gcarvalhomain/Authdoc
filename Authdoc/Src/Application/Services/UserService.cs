@@ -1,7 +1,6 @@
 ﻿using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Microsoft.EntityFrameworkCore;
-using Authdoc.Models.Entities;
 
 
 namespace Authdoc.Application.Services;
