@@ -3,7 +3,6 @@ using Authdoc.Responses;
 using Authdoc.Application.Services;
 
 
-
 namespace Authdoc.Endpoints;
 
 public static class EndpointsUser
@@ -33,7 +32,7 @@ public static class EndpointsUser
                         Message = validationError
                     });
                 }
-                
+
                 var userExist = await userService.EmailBelongsToAnotherUserAsync(id, request.Email);
                 if (userExist)
                 {
@@ -85,6 +84,7 @@ public static class EndpointsUser
         {
             return "Name is required";
         }
+
         return null;
     }
 }

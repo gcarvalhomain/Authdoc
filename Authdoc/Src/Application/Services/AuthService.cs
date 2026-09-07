@@ -5,8 +5,10 @@ using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using LoginRequest = Authdoc.Application.DTOs.LoginRequest;
 
 namespace Authdoc.Application.Services;
 
@@ -21,6 +23,33 @@ public class AuthService
         _context = context;
         _passwordHasher = passwordHasher;
         _configuration = configuration;
+    }
+
+    public async Task<UserResponse?> RegisterAdminAsync(RegisterAdminRequest request)
+    {
+        var user = new User
+        {
+            Name = request.Name,
+            Email = request.Email,
+            Age = request.Age,
+            Gender = request.Gender,
+            CreatedAt = DateTime.UtcNow,
+            PasswordHash = request.PasswordHash,
+            Role = "Admin"
+        };
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.PasswordHash);
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        return new UserResponse
+        {
+            Id = user.Id,
+            Email = user.Email,
+            Name = user.Name,
+            Age = user.Age,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
+        };
     }
 
     public async Task<UserResponse?> RegisterAsync(RegisterUserRequest  request)
