@@ -33,7 +33,7 @@ public class AuthService
 
         var user = new User
         {
-            Name = request.Name!,
+            Name = request.Name,
             Email = request.Email,
             Age = request.Age,
             Gender = request.Gender,
@@ -53,7 +53,7 @@ public class AuthService
             Name = user.Name,
             Age = user.Age,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = user.UpdatedAt,
+            UpdatedAt = user.UpdatedAt
         };
     }
 
@@ -80,7 +80,7 @@ public class AuthService
         var key = _configuration["Jwt:Key"];
         var issuer = _configuration["Jwt:Issuer"];
         var audience = _configuration["Jwt:audience"];
-        var expirationInMinutes = int.Parse(_configuration["Jwt:exp"]!);
+        var expirationInMinutes = int.Parse(_configuration["Jwt:ExpirationInMinutes"]!);
 
         var expiresAt = DateTime.UtcNow.AddMinutes(expirationInMinutes);
 
