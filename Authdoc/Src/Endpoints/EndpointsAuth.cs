@@ -18,31 +18,8 @@ public static class EndpointsAuth
             .RequireAuthorization("Admin");
 
         app.MapPost("Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
-        {
-            var validationError = ValidateRegister(request);
-            if (validationError is not null)
             {
-                return Results.BadRequest(new ErrorResponse
-                {
-                    Message = validationError
-                });
-            }
-
-            var user = await authService.RegisterAsync(request);
-            if (user is null)
-            {
-                return Results.Conflict(new ErrorResponse
-                {
-                    Message = "Email already exists"
-                });
-            }
-
-            return Results.Created($"/api/auth/{user.Id}", user);
-        })
-        .RequireAuthorization("Admin");
-        app.MapPost("Api/Auth/login", async (LoginRequest request, AuthService authService) =>
-            {
-                var validationError = ValidateLogin(request);
+                var validationError = ValidateRegister(request);
                 if (validationError is not null)
                 {
                     return Results.BadRequest(new ErrorResponse
@@ -51,32 +28,53 @@ public static class EndpointsAuth
                     });
                 }
 
-                var loginResponse = await authService.LoginAsync(request);
-                if (loginResponse is null)
+                var user = await authService.RegisterAsync(request);
+                if (user is null)
                 {
-                    return Results.BadRequest(new ErrorResponse
+                    return Results.Conflict(new ErrorResponse
                     {
-                        Message = "Username or password is incorrect"
+                        Message = "Email already exists"
                     });
                 }
 
-                return Results.Ok(loginResponse);
+                return Results.Created($"/api/auth/{user.Id}", user);
             })
             .RequireAuthorization("Admin");
-        app.MapGet("Api/Auth/Me", (ClaimsPrincipal user) =>
+        app.MapPost("Api/Auth/login", async (LoginRequest request, AuthService authService) =>
+        {
+            var validationError = ValidateLogin(request);
+            if (validationError is not null)
             {
-                var id = user.FindFirst(ClaimTypes.NameIdentifier);
-                var name = user.FindFirst(ClaimTypes.Name);
-                var email = user.FindFirst(ClaimTypes.Email);
-
-                return Results.Ok(new
+                return Results.BadRequest(new ErrorResponse
                 {
-                    Id = id,
-                    Name = name,
-                    Email = email
+                    Message = validationError
                 });
-            })
-            .RequireAuthorization("Admin");
+            }
+
+            var loginResponse = await authService.LoginAsync(request);
+            if (loginResponse is null)
+            {
+                return Results.BadRequest(new ErrorResponse
+                {
+                    Message = "Username or password is incorrect"
+                });
+            }
+
+            return Results.Ok(loginResponse);
+        });
+        app.MapGet("Api/Auth/Me", (ClaimsPrincipal user) =>
+        {
+            var id = user.FindFirst(ClaimTypes.NameIdentifier);
+            var name = user.FindFirst(ClaimTypes.Name);
+            var email = user.FindFirst(ClaimTypes.Email);
+
+            return Results.Ok(new
+            {
+                Id = id.Value,
+                Name = name.Value,
+                Email = email.Value
+            });
+        });
     }
 
     public static string? ValidateRegister(RegisterUserRequest request)
