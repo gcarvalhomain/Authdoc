@@ -21,7 +21,8 @@ public static class EndpointsUser
             }
 
             return Results.Ok(user);
-        });
+        })
+        .RequireAuthorization("Admin");
         app.MapPut("Api/Users/{id}", async (int id, UpdateUserRequest request, UserService userService) =>
             {
                 var validationError = ValidateUpdate(request);
