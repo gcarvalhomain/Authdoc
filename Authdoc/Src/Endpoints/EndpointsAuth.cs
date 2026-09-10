@@ -12,8 +12,8 @@ public static class EndpointsAuth
     {
         app.MapPost("/Api/Auth/RegisterAdmin", async (RegisterAdminRequest request, AuthService authService) =>
             {
-                var result = await authService.RegisterAdminAsync(request);
-                return Results.Ok(result);
+                var admin = await authService.RegisterAdminAsync(request);
+                return Results.Ok(admin);
             })
             .RequireAuthorization("Admin");
 
@@ -70,9 +70,9 @@ public static class EndpointsAuth
 
             return Results.Ok(new
             {
-                Id = id.Value,
-                Name = name.Value,
-                Email = email.Value
+                Id = id?.Value,
+                Name = name?.Value,
+                Email = email?.Value
             });
         });
     }
@@ -82,16 +82,6 @@ public static class EndpointsAuth
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return "Name is required";
-        }
-
-        if (string.IsNullOrWhiteSpace(request.PasswordHash))
-        {
-            return "Password is required";
-        }
-
-        if (string.IsNullOrWhiteSpace(request.Email))
-        {
-            return "Email is required";
         }
 
         if (string.IsNullOrWhiteSpace(request.Gender))
@@ -113,9 +103,21 @@ public static class EndpointsAuth
             !Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") ||
             !Regex.IsMatch(request.PasswordHash, "[!@#$%^&*(),.?\\\":{}|<>]"))
         {
-            return "Password must consist only of letters and digits";
-        }
+            if(!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            {
+                return "Email is invalid";
+            }
 
+            if (!Regex.IsMatch(request.PasswordHash, "[^a-zA-Z0-9]"))
+            {
+                return "Password is invalid";
+            }
+
+            if (!Regex.IsMatch(request.PasswordHash, "[!@#$%^&*(),.?\\\":{}|<>]"))
+            {
+                return "Password must have at least one special characters. ";
+            }
+        }
         return null;
     }
 
