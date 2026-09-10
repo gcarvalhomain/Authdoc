@@ -36,6 +36,7 @@ public class AuthService
             PasswordHash = request.PasswordHash,
             Role = "Admin"
         };
+        
         user.PasswordHash = _passwordHasher.HashPassword(user, request.PasswordHash);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
@@ -46,9 +47,11 @@ public class AuthService
             Email = user.Email,
             Name = user.Name,
             Age = user.Age,
+            Gender = user.Gender,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };
+        
     }
 
     public async Task<UserResponse?> RegisterAsync(RegisterUserRequest  request)

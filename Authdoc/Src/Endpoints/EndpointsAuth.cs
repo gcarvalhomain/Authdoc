@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
@@ -12,13 +13,26 @@ public static class EndpointsAuth
     {
         app.MapPost("/Api/Auth/RegisterAdmin", async (RegisterAdminRequest request, AuthService authService) =>
             {
+                if (!CanRegister(request.Email))
+                {
+                    return Results.BadRequest(new ErrorResponse
+                    {
+                        Message = "Email is invalid"
+                    });
+                }
                 var admin = await authService.RegisterAdminAsync(request);
                 return Results.Ok(admin);
             })
             .RequireAuthorization("Admin");
-
         app.MapPost("Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
             {
+                if (!CanRegister(request.Email))
+                {
+                    return Results.BadRequest(new ErrorResponse
+                    {
+                        Message = "Email is invalid"
+                    });
+                }
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)
                 {
@@ -62,6 +76,7 @@ public static class EndpointsAuth
 
             return Results.Ok(loginResponse);
         });
+
         app.MapGet("Api/Auth/Me", (ClaimsPrincipal user) =>
         {
             var id = user.FindFirst(ClaimTypes.NameIdentifier);
@@ -103,7 +118,7 @@ public static class EndpointsAuth
             !Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") ||
             !Regex.IsMatch(request.PasswordHash, "[!@#$%^&*(),.?\\\":{}|<>]"))
         {
-            if(!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
             {
                 return "Email is invalid";
             }
@@ -118,6 +133,7 @@ public static class EndpointsAuth
                 return "Password must have at least one special characters. ";
             }
         }
+
         return null;
     }
 
@@ -134,5 +150,33 @@ public static class EndpointsAuth
         }
 
         return null;
+    }
+
+    private static bool EmailValid(string email)
+    {
+        try
+        {
+            var end = new MailAddress(email);
+            return end.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool DomainAllowed(string email)
+    {
+        //Utilization of Arrays
+        string[] domainsAlloweds = ["gmail.com", "outlook.com", "hotmail.com", "live.com"];
+            string domain = email.Split('@')[1].ToLower();
+            return domainsAlloweds.Contains(domain);
+    }
+
+    private static bool CanRegister(string email)
+    {
+        if(!EmailValid(email))
+            return false;
+        return DomainAllowed(email);
     }
 }
