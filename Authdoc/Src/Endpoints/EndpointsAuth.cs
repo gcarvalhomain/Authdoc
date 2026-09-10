@@ -104,9 +104,9 @@ public static class EndpointsAuth
             return "Gender is required";
         }
 
-        if (request.Age <= 18)
+        if (request.Age < 18)
         {
-            return "Age must be 18 years old";
+            return "Age must be 18 years of age or older";
         }
 
         if (request.PasswordHash.Length < 6)
