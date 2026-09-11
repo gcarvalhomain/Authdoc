@@ -15,78 +15,58 @@ public static class EndpointsAuth
             {
                 if (!CanRegister(request.Email))
                 {
-                    return Results.BadRequest(new ErrorResponse
-                    {
-                        Message = "Email is invalid"
-                    });
+                    return BadRequest("Email is invalid");
                 }
+
                 var admin = await authService.RegisterAdminAsync(request);
                 return Results.Ok(admin);
             })
             .RequireAuthorization("Admin");
-        app.MapPost("Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
+        app.MapPost("/Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
             {
-                
-                
                 if (!CanRegister(request.Email))
                 {
-                    return Results.BadRequest(new ErrorResponse
-                    {
-                        Message = "Email is invalid"
-                    });
+                    return BadRequest("Email is invalid");
                 }
+
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)
                 {
-                    return Results.BadRequest(new ErrorResponse
-                    {
-                        Message = validationError
-                    });
+                    return BadRequest(validationError);
                 }
-                if (request.PasswordHash != request.ConfirmationPassword)
+
+                if (request.Password != request.ConfirmationPassword)
                 {
-                    return Results.BadRequest(new ErrorResponse
-                    {
-                        Message = "Passwords do not match"
-                    });
+                    return BadRequest("Passwords do not match");
                 }
 
                 var user = await authService.RegisterAsync(request);
                 if (user is null)
                 {
-                    return Results.Conflict(new ErrorResponse
-                    {
-                        Message = "Email already exists"
-                    });
+                    return BadRequest("User not found");
                 }
 
                 return Results.Created($"/api/auth/{user.Id}", user);
             })
             .RequireAuthorization("Admin");
-        app.MapPost("Api/Auth/login", async (LoginRequest request, AuthService authService) =>
+        app.MapPost("/Api/Auth/login", async (LoginRequest request, AuthService authService) =>
         {
             var validationError = ValidateLogin(request);
             if (validationError is not null)
             {
-                return Results.BadRequest(new ErrorResponse
-                {
-                    Message = validationError
-                });
+                return BadRequest(validationError);
             }
 
             var loginResponse = await authService.LoginAsync(request);
             if (loginResponse is null)
             {
-                return Results.BadRequest(new ErrorResponse
-                {
-                    Message = "Username or password is incorrect"
-                });
+                return BadRequest("Username or password is incorrect");
             }
 
             return Results.Ok(loginResponse);
         });
 
-        app.MapGet("Api/Auth/Me", (ClaimsPrincipal user) =>
+        app.MapGet("/Api/Auth/Me", (ClaimsPrincipal user) =>
         {
             var id = user.FindFirst(ClaimTypes.NameIdentifier);
             var name = user.FindFirst(ClaimTypes.Name);
@@ -118,29 +98,24 @@ public static class EndpointsAuth
             return "Age must be 18 years of age or older";
         }
 
-        if (request.PasswordHash.Length < 6)
+        if (request.Password.Length < 6)
         {
             return "Password must be at least 6 characters long";
         }
 
-        if (!Regex.IsMatch(request.PasswordHash, "[^a-zA-Z0-9]") ||
-            !Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$") ||
-            !Regex.IsMatch(request.PasswordHash, "[!@#$%^&*(),.?\\\":{}|<>]"))
+        if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
         {
-            if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-            {
-                return "Email is invalid";
-            }
+            return "Email is invalid";
+        }
 
-            if (!Regex.IsMatch(request.PasswordHash, "[^a-zA-Z0-9]"))
-            {
-                return "Password is invalid";
-            }
+        if (!Regex.IsMatch(request.Password, "[^a-zA-Z0-9]"))
+        {
+            return "Password must contain at least one letter or number.";
+        }
 
-            if (!Regex.IsMatch(request.PasswordHash, "[!@#$%^&*(),.?\\\":{}|<>]"))
-            {
-                return "Password must have at least one special characters. ";
-            }
+        if (!Regex.IsMatch(request.Password, "[!@#$%^&*(),.?\\\":{}|<>]"))
+        {
+            return "Password must have at least one special character.";
         }
 
         return null;
@@ -178,14 +153,22 @@ public static class EndpointsAuth
     {
         //Utilization of Arrays
         string[] domainsAlloweds = ["gmail.com", "outlook.com", "hotmail.com", "live.com"];
-            string domain = email.Split('@')[1].ToLower();
-            return domainsAlloweds.Contains(domain);
+        string domain = email.Split('@')[1].ToLower();
+        return domainsAlloweds.Contains(domain);
     }
 
     private static bool CanRegister(string email)
     {
-        if(!EmailValid(email))
+        if (!EmailValid(email))
             return false;
         return DomainAllowed(email);
+    }
+
+    private static IResult BadRequest(string error)
+    {
+        return Results.BadRequest(new ErrorResponse
+        {
+            Message = error
+        });
     }
 }
