@@ -59,7 +59,7 @@ public static class EndpointsUser
             .RequireAuthorization("Admin");
     }
 
-    public static string? ValidateUpdate(UpdateUserRequest request)
+    private static string? ValidateUpdate(UpdateUserRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {

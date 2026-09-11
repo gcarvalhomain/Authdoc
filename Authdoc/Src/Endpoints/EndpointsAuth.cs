@@ -81,7 +81,7 @@ public static class EndpointsAuth
         });
     }
 
-    public static string? ValidateRegister(RegisterUserRequest request)
+    private static string? ValidateRegister(RegisterUserRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
         {
@@ -102,25 +102,11 @@ public static class EndpointsAuth
         {
             return "Password must be at least 6 characters long";
         }
-
-        if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-        {
-            return "Email is invalid";
-        }
-
-        if (!Regex.IsMatch(request.Password, "[^a-zA-Z0-9]"))
-        {
-            return "Password must contain at least one letter or number.";
-        }
-
-        if (!Regex.IsMatch(request.Password, "[!@#$%^&*(),.?\\\":{}|<>]"))
-        {
-            return "Password must have at least one special character.";
-        }
-
         return null;
     }
 
+    private static readonly  Regex EmailRegex = new (@"^[^@\s]+@[^@\s]+\.[^@\s]+$", options: RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    
     public static string? ValidateLogin(LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
@@ -141,7 +127,7 @@ public static class EndpointsAuth
         try
         {
             var end = new MailAddress(email);
-            return end.Address == email;
+            return end.Address == email && EmailRegex.IsMatch(email);
         }
         catch
         {
