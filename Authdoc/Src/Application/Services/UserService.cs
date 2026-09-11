@@ -46,6 +46,7 @@ public class UserService
             user.Email = request.Email;
             user.Age = request.Age;
             user.CreatedAt = DateTime.Now;
+            user.UpdatedAt = DateTime.Now;
         }
         await _context.SaveChangesAsync();
         return true;

@@ -69,7 +69,6 @@ public class AuthService
             Age = request.Age,
             Gender = request.Gender,
             PasswordHash = request.Password,
-            ConfirmationPassword = request.ConfirmationPassword,
             CreatedAt = DateTime.UtcNow,
             Role = "User"
         };
