@@ -26,6 +26,8 @@ public static class EndpointsAuth
             .RequireAuthorization("Admin");
         app.MapPost("Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
             {
+                
+                
                 if (!CanRegister(request.Email))
                 {
                     return Results.BadRequest(new ErrorResponse
@@ -39,6 +41,13 @@ public static class EndpointsAuth
                     return Results.BadRequest(new ErrorResponse
                     {
                         Message = validationError
+                    });
+                }
+                if (request.PasswordHash != request.ConfirmationPassword)
+                {
+                    return Results.BadRequest(new ErrorResponse
+                    {
+                        Message = "Passwords do not match"
                     });
                 }
 

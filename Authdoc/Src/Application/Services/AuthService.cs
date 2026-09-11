@@ -4,6 +4,7 @@ using System.Text;
 using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
+using Authdoc.Responses;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -69,6 +70,7 @@ public class AuthService
             Age = request.Age,
             Gender = request.Gender,
             PasswordHash = request.PasswordHash,
+            ConfirmationPassword = request.ConfirmationPassword,
             CreatedAt = DateTime.UtcNow,
             Role = "User"
         };
@@ -76,6 +78,7 @@ public class AuthService
         user.PasswordHash = _passwordHasher.HashPassword(user, request.PasswordHash);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
+        
 
         return new UserResponse
         {
