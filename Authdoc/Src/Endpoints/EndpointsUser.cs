@@ -14,10 +14,7 @@ public static class EndpointsUser
             var user = await userService.GetByIdAsync(id);
             if (user is null)
             {
-                return Results.NotFound(new ErrorResponse
-                {
-                    Message = "User not found",
-                });
+                return BadRequest("User not found");
             }
 
             return Results.Ok(user);
@@ -28,28 +25,19 @@ public static class EndpointsUser
                 var validationError = ValidateUpdate(request);
                 if (validationError is not null)
                 {
-                    return Results.BadRequest(new ErrorResponse
-                    {
-                        Message = validationError
-                    });
+                    return BadRequest(validationError);
                 }
 
                 var userExist = await userService.EmailBelongsToAnotherUserAsync(id, request.Email);
                 if (userExist)
                 {
-                    return Results.Conflict(new ErrorResponse
-                    {
-                        Message = "User already exists"
-                    });
+                    return BadRequest("Email is already in use");
                 }
 
                 var update = await userService.UpdateAsync(id, request);
                 if (!update)
                 {
-                    return Results.BadRequest(new ErrorResponse
-                    {
-                        Message = "User not found"
-                    });
+                    return BadRequest("User not found");
                 }
 
                 var user = await userService.GetByIdAsync(id);
@@ -63,10 +51,7 @@ public static class EndpointsUser
                 var user = await userService.DeleteAsync(id);
                 if (!user)
                 {
-                    return Results.NotFound(new ErrorResponse
-                    {
-                        Message = "User not found"
-                    });
+                    return BadRequest("User not found");
                 }
 
                 return Results.NoContent();
@@ -74,7 +59,7 @@ public static class EndpointsUser
             .RequireAuthorization("Admin");
     }
 
-    public static string? ValidateUpdate(UpdateUserRequest request)
+    private static string? ValidateUpdate(UpdateUserRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
@@ -87,5 +72,13 @@ public static class EndpointsUser
         }
 
         return null;
+    }
+
+    private static IResult BadRequest(string error)
+    {
+        return Results.BadRequest(new ErrorResponse
+        {
+            Message = error
+        });
     }
 }
