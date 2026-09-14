@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "iNngO+xwS94=",
+  "dgSpecHash": "9hnbJDJY1mA=",
   "success": true,
   "projectFilePath": "C:\\Users\\Leno Carvalho\\Documents\\ProjectsGab\\Authdoc\\Authdoc\\Authdoc.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Leno Carvalho\\.nuget\\packages\\azure.core\\1.47.1\\azure.core.1.47.1.nupkg.sha512",
     "C:\\Users\\Leno Carvalho\\.nuget\\packages\\azure.identity\\1.14.2\\azure.identity.1.14.2.nupkg.sha512",
+    "C:\\Users\\Leno Carvalho\\.nuget\\packages\\bcrypt.net-next\\4.2.0\\bcrypt.net-next.4.2.0.nupkg.sha512",
     "C:\\Users\\Leno Carvalho\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
     "C:\\Users\\Leno Carvalho\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\10.0.11\\microsoft.aspnetcore.authentication.jwtbearer.10.0.11.nupkg.sha512",
     "C:\\Users\\Leno Carvalho\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.11\\microsoft.aspnetcore.openapi.10.0.11.nupkg.sha512",

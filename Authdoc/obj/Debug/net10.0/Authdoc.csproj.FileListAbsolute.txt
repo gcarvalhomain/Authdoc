@@ -214,3 +214,4 @@ C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\obj\Debug\net10.0\A
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.AspNetCore.OpenApi.dll
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.OpenApi.dll
 C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\Users\Leno Carvalho\Documents\ProjectsGab\Authdoc\Authdoc\bin\Debug\net10.0\BCrypt-Net-Next.dll

@@ -11,17 +11,6 @@ public static class EndpointsAuth
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        app.MapPost("/Api/Auth/RegisterAdmin", async (RegisterAdminRequest request, AuthService authService) =>
-            {
-                if (!CanRegister(request.Email))
-                {
-                    return BadRequest("Email is invalid");
-                }
-
-                var admin = await authService.RegisterAdminAsync(request);
-                return Results.Ok(admin);
-            })
-            .RequireAuthorization("Admin");
         app.MapPost("/Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
             {
                 if (!CanRegister(request.Email))

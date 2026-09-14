@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Authdoc")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+be8dd0fb7b0d93e69246757f995f274e05d35824")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d67f87cba2144878cb7c5c04777c3596cf0597be")]
 [assembly: System.Reflection.AssemblyProductAttribute("Authdoc")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Authdoc")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
