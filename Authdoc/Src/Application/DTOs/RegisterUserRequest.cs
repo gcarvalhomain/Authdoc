@@ -10,5 +10,5 @@ public class RegisterUserRequest
     public string ConfirmationPassword { get; set; } = string.Empty;
     
     
-    
 }
+

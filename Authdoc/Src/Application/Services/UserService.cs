@@ -13,9 +13,7 @@ public class UserService
     {
         _context = context;
     }
-
-// Retorna null quando o e-mail ja existe para que o endpoint decida o status HTTP.
-    public async Task<UserResponse?> GetByIdAsync(int id)
+    public async Task<UserResponse?> GetByIdAsync(Guid id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
         if (user is null)
@@ -25,7 +23,6 @@ public class UserService
 
         return new UserResponse
         {
-            Id = user.Id,
             Name = user.Name,
             Email = user.Email,
             Gender = user.Gender,
@@ -33,7 +30,7 @@ public class UserService
         };
     }
 
-    public async Task<bool> UpdateAsync(int id, UpdateUserRequest request)
+    public async Task<bool> UpdateAsync(Guid id, UpdateUserRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
         {
@@ -51,7 +48,7 @@ public class UserService
         return true;
     }
 
-    public async Task<bool> DeleteAsync(int id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
         {
@@ -67,7 +64,7 @@ public class UserService
         }
     }
 
-    public async Task<bool> EmailBelongsToAnotherUserAsync(int id, string email)
+    public async Task<bool> EmailBelongsToAnotherUserAsync(Guid id, string email)
     {
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id != id);
     }

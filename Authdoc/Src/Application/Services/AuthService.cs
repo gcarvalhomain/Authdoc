@@ -23,36 +23,7 @@ public class AuthService
         _passwordHasher = passwordHasher;
         _configuration = configuration;
     }
-
-    public async Task<UserResponse?> RegisterAdminAsync(RegisterAdminRequest request)
-    {
-        var user = new User
-        {
-            Name = request.Name,
-            Email = request.Email,
-            Age = request.Age,
-            Gender = request.Gender,
-            CreatedAt = DateTime.UtcNow,
-            PasswordHash = request.PasswordHash,
-            Role = "Admin"
-        };
-        
-        user.PasswordHash = _passwordHasher.HashPassword(user, request.PasswordHash);
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-
-        return new UserResponse
-        {
-            Id = user.Id,
-            Email = user.Email,
-            Name = user.Name,
-            Age = user.Age,
-            Gender = user.Gender,
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt
-        };
-        
-    }
+    
 
     public async Task<UserResponse?> RegisterAsync(RegisterUserRequest  request)
     {
@@ -68,13 +39,12 @@ public class AuthService
             Email = request.Email,
             Age = request.Age,
             Gender = request.Gender,
-            PasswordHash = request.Password,
+            Password = request.Password,
             ConfirmationPassword = request.ConfirmationPassword,
-            CreatedAt = DateTime.UtcNow,
-            Role = "User"
+            CreatedAt = DateTime.UtcNow
         };
         
-        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
+        user.Password = _passwordHasher.HashPassword(user, request.Password);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
         
@@ -99,7 +69,7 @@ public class AuthService
         }
         var result = _passwordHasher.VerifyHashedPassword(
             user,
-            user.PasswordHash,
+            user.Password,
             request.Password);
         if (result == PasswordVerificationResult.Failed)
         {
@@ -121,8 +91,7 @@ public class AuthService
         {
             new (ClaimTypes.NameIdentifier, user.Id.ToString()),
             new (ClaimTypes.Name, user.Name),
-            new (ClaimTypes.Email, user.Email),
-            new (ClaimTypes.Role, user.Role),
+            new (ClaimTypes.Email, user.Email)
         };
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
