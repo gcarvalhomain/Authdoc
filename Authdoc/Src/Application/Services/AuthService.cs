@@ -40,7 +40,6 @@ public class AuthService
             Age = request.Age,
             Gender = request.Gender,
             Password = request.Password,
-            ConfirmationPassword = request.ConfirmationPassword,
             CreatedAt = DateTime.UtcNow
         };
         
@@ -67,11 +66,10 @@ public class AuthService
         {
             return null;
         }
-        var result = _passwordHasher.VerifyHashedPassword(
-            user,
-            user.Password,
-            request.Password);
-        if (result == PasswordVerificationResult.Failed)
+        bool result = BCrypt.Net.BCrypt.Verify(
+            request.Password,
+            user.Password);
+        if (!result)
         {
             return null;
         }
