@@ -59,10 +59,9 @@ using (var scope = app.Services.CreateScope())
             Id = Guid.NewGuid(), // ID dinâmico
             Name = "Admin",
             Email = "admin@email.com",
-            // CRIPTOGRAFIA DINÂMICA: Funciona perfeitamente aqui fora do DbContext
             Password = BCrypt.Net.BCrypt.HashPassword("AdminPassword123!"), 
             Role = UserRole.Admin
-            // O CreatedAt não precisa de ser preenchido, o SQL Server coloca a hora real sozinho!
+            
         };
 
         dbContext.Users.Add(adminSeed);
