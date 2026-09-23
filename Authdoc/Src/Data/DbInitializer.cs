@@ -1,4 +1,6 @@
-﻿using Authdoc.Models.Entities;
+﻿using System;
+using System.Threading.Tasks;
+using Authdoc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 
