@@ -1,9 +1,13 @@
-﻿using System.Security.Claims;
+﻿using System;
+using System.Linq;
+using System.Security.Claims;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
 using Authdoc.Responses;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 
 namespace Authdoc.Endpoints;
 
@@ -67,7 +71,7 @@ public static class EndpointsAuth
                 Name = name?.Value,
                 Email = email?.Value
             });
-        });
+        }); 
     }
 
     private static string? ValidateRegister(RegisterUserRequest request)

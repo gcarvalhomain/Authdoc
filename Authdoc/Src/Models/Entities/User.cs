@@ -1,4 +1,6 @@
-﻿namespace Authdoc.Models.Entities;
+﻿using System;
+
+namespace Authdoc.Models.Entities;
 
 public class User
 {

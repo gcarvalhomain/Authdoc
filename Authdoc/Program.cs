@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using System.Text;
 using Authdoc.Application.Services;
 using Authdoc.Data;
@@ -7,7 +9,11 @@ using Authdoc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,8 +63,9 @@ using (var scope = app.Services.CreateScope())
         var adminSeed = new User
         {
             Id = Guid.NewGuid(), // ID dinâmico
-            Name = "Admin",
-            Email = "admin@email.com",
+            Name = "Start Admin",
+            Email = "admin@system.com",
+            Age = 25,
             Password = BCrypt.Net.BCrypt.HashPassword("AdminPassword123!"), 
             Role = UserRole.Admin
             
@@ -74,8 +81,6 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
-
-    
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapAuthEndpoints();

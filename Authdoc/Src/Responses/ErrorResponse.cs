@@ -1,4 +1,6 @@
-﻿namespace Authdoc.Responses;
+﻿using System;
+
+namespace Authdoc.Responses;
 
 public class ErrorResponse
 {
