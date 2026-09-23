@@ -1,11 +1,15 @@
-﻿using System.IdentityModel.Tokens.Jwt;
+﻿using System;
+using System.Collections.Generic;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using LoginRequest = Authdoc.Application.DTOs.LoginRequest;
 
@@ -54,6 +58,7 @@ public class AuthService
             Email = user.Email,
             Name = user.Name,
             Age = user.Age,
+            Gender =  user.Gender,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = user.UpdatedAt
         };
@@ -87,6 +92,7 @@ public class AuthService
 
         var claims = new List<Claim>
         {
+            new  Claim(ClaimTypes.Role, user.Role.ToString()),
             new (ClaimTypes.NameIdentifier, user.Id.ToString()),
             new (ClaimTypes.Name, user.Name),
             new (ClaimTypes.Email, user.Email)

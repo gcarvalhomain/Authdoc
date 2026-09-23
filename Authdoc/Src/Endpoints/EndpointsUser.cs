@@ -1,6 +1,9 @@
-﻿using Authdoc.Application.DTOs;
+﻿using System;
+using Authdoc.Application.DTOs;
 using Authdoc.Responses;
 using Authdoc.Application.Services;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 
 
 namespace Authdoc.Endpoints;

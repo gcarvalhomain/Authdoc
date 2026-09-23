@@ -1,4 +1,6 @@
-﻿namespace Authdoc.Application.DTOs;
+﻿using System;
+
+namespace Authdoc.Application.DTOs;
 
 public class UserResponse
 {

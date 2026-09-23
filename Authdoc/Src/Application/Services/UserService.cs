@@ -1,4 +1,6 @@
-﻿using Authdoc.Application.DTOs;
+﻿using System;
+using System.Threading.Tasks;
+using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,6 +44,8 @@ public class UserService
             user.Name = request.Name!;
             user.Email = request.Email;
             user.Age = request.Age;
+            user.Gender = request.Gender;
+            user.Role = request.Role;
             user.CreatedAt = DateTime.Now;
         }
         await _context.SaveChangesAsync();
