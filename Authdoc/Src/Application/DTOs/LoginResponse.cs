@@ -2,7 +2,7 @@
 
 namespace Authdoc.Application.DTOs;
 
-public class LoginResponse
+public sealed record LoginResponse
 {
     public UserResponse User { get; set; } = null!;
     public string? Token { get; set; } = string.Empty;
