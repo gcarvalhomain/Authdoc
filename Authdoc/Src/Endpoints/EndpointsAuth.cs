@@ -15,7 +15,7 @@ public static class EndpointsAuth
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        app.MapPost("/Post/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
+        app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
                 if (!CanRegister(request.Email))
                 {
@@ -42,7 +42,7 @@ public static class EndpointsAuth
                 return Results.Created($"/Api/Users/{user.Id}", user);
             })
             .RequireAuthorization("Admin");
-        app.MapPost("/Post/Auth/login", async (LoginRequest request, AuthService authService) =>
+        app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
         {
             var validationError = ValidateLogin(request);
             if (validationError is not null)
@@ -59,7 +59,7 @@ public static class EndpointsAuth
             return Results.Ok(loginResponse);
         });
 
-        app.MapGet("/Get/Auth/Me", (ClaimsPrincipal user) =>
+        app.MapGet("/api/auth", (ClaimsPrincipal user) =>
         {
             var id = user.FindFirst(ClaimTypes.NameIdentifier);
             var name = user.FindFirst(ClaimTypes.Name);

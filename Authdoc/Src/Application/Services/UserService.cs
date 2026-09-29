@@ -22,7 +22,7 @@ public class UserService
         {
             return null;
         }
-
+        
         return new UserResponse
         {
             Id = user.Id,
@@ -39,11 +39,12 @@ public class UserService
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
         {
-            if (user is null)
+            if (user is null )
             {
                 return false;
             }
-            
+            user.Name = request.Name;
+            user.Age = request.Age;
             user.Email = request.Email;
             user.UpdatedAt = DateTime.Now;
         }
