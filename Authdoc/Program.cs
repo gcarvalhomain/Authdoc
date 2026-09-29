@@ -51,6 +51,12 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<ManagerDbContext>();
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+    await DbInitializer.SeedAdminAsync(dbContext, passwordHasher);
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

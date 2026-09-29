@@ -39,7 +39,7 @@ public static class EndpointsAuth
                     return Results.Conflict("Email already in use");
                 }
 
-                return Results.Created($"/Api/Users/{user.Id}", user);
+                return Results.Created($"/api/auth/me {user.Id}", user);
             })
             .RequireAuthorization("Admin");
         app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
@@ -59,7 +59,7 @@ public static class EndpointsAuth
             return Results.Ok(loginResponse);
         });
 
-        app.MapGet("/api/auth", (ClaimsPrincipal user) =>
+        app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
         {
             var id = user.FindFirst(ClaimTypes.NameIdentifier);
             var name = user.FindFirst(ClaimTypes.Name);
