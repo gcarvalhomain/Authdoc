@@ -32,6 +32,8 @@ public static class DbInitializer
                 Id = Guid.NewGuid(),
                 Name = "Start Admin",
                 Email = adminEmail,
+                Age = 25,
+                Gender = "Male",
                 Password = BCrypt.Net.BCrypt.HashPassword(defaultPassword),
                 Role = UserRole.Admin
             };
