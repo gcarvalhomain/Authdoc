@@ -1,5 +1,3 @@
-using System;
-using System.Linq;
 using System.Text;
 using Authdoc.Application.Services;
 using Authdoc.Data;
@@ -56,24 +54,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ManagerDbContext>();
-    await DbInitializer.SeedAdminAsync(dbContext);
-    
-    if (!dbContext.Users.Any(u => u.Role == UserRole.Admin))
-    {
-        var adminSeed = new User
-        {
-            Id = Guid.NewGuid(), // ID dinâmico
-            Name = "Start Admin",
-            Email = "admin@system.com",
-            Age = 25,
-            Password = BCrypt.Net.BCrypt.HashPassword("AdminPassword123!"), 
-            Role = UserRole.Admin
-            
-        };
-
-        dbContext.Users.Add(adminSeed);
-        dbContext.SaveChanges();
-    }
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+    await DbInitializer.SeedAdminAsync(dbContext, passwordHasher);
 }
 
 // Configure the HTTP request pipeline.

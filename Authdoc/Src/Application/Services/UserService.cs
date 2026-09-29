@@ -22,13 +22,16 @@ public class UserService
         {
             return null;
         }
-
+        
         return new UserResponse
         {
+            Id = user.Id,
             Name = user.Name,
             Email = user.Email,
             Gender = user.Gender,
             Age = user.Age,
+            CreatedAt = user.CreatedAt,
+            UpdatedAt = user.UpdatedAt
         };
     }
 
@@ -36,17 +39,14 @@ public class UserService
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
         {
-            if (user is null)
+            if (user is null )
             {
                 return false;
             }
-
-            user.Name = request.Name!;
-            user.Email = request.Email;
+            user.Name = request.Name;
             user.Age = request.Age;
-            user.Gender = request.Gender;
-            user.Role = request.Role;
-            user.CreatedAt = DateTime.Now;
+            user.Email = request.Email;
+            user.UpdatedAt = DateTime.Now;
         }
         await _context.SaveChangesAsync();
         return true;

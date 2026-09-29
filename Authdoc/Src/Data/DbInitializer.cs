@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using Authdoc.Models.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -8,7 +9,7 @@ namespace Authdoc.Data;
 
 public static class DbInitializer
 {
-    public static async Task SeedAdminAsync(ManagerDbContext context)
+    public static async Task SeedAdminAsync(ManagerDbContext context, IPasswordHasher<User> passwordHasher)
     {
         await context.Database.MigrateAsync();
         
@@ -26,15 +27,18 @@ public static class DbInitializer
         else
         {
             string defaultPassword = "AdminPassword123!";
-            
+
             var initialAdmin = new User
             {
                 Id = Guid.NewGuid(),
                 Name = "Start Admin",
                 Email = adminEmail,
-                Password = BCrypt.Net.BCrypt.HashPassword(defaultPassword),
+                Age = 25,
+                Gender = "Male",
                 Role = UserRole.Admin
             };
+
+            initialAdmin.Password = passwordHasher.HashPassword(initialAdmin, defaultPassword);
 
             await context.Users.AddAsync(initialAdmin);
         }

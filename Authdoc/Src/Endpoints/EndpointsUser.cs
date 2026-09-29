@@ -12,7 +12,7 @@ public static class EndpointsUser
 {
     public static void MapUserEndpoints(this WebApplication app)
     {
-        app.MapGet("Api/Users/{id}", async (Guid id, UserService userService) =>
+        app.MapGet("/api/users/{id}", async (Guid id, UserService userService) =>
         {
             var user = await userService.GetByIdAsync(id);
             if (user is null)
@@ -23,7 +23,7 @@ public static class EndpointsUser
             return Results.Ok(user);
         })
         .RequireAuthorization("Admin");
-        app.MapPut("Api/Users/{id}", async (Guid id, UpdateUserRequest request, UserService userService) =>
+        app.MapPut("/api/users/{id}", async (Guid id, UpdateUserRequest request, UserService userService) =>
             {
                 var validationError = ValidateUpdate(request);
                 if (validationError is not null)
@@ -49,7 +49,7 @@ public static class EndpointsUser
                 }
             })
             .RequireAuthorization("Admin");
-        app.MapDelete("Api/Users/{id}", async (Guid id, UserService userService) =>
+        app.MapDelete("/api/users/{id}", async (Guid id, UserService userService) =>
             {
                 var user = await userService.DeleteAsync(id);
                 if (!user)
@@ -67,6 +67,11 @@ public static class EndpointsUser
         if (string.IsNullOrWhiteSpace(request.Email))
         {
             return "Email is required";
+        }
+
+        if (request.Age < 18)
+        {
+            return "Age must be 18 years of age or older";
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))

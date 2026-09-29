@@ -71,13 +71,12 @@ public class AuthService
         {
             return null;
         }
-        bool result = BCrypt.Net.BCrypt.Verify(
-            request.Password,
-            user.Password);
-        if (!result)
-        {
-            return null;
-        }
+        var result = _passwordHasher.VerifyHashedPassword(user, user.Password, request.Password);                                                                                                                                                                                                            
+                                                                                                                                                                                                                                                                                                                       
+        if (result == PasswordVerificationResult.Failed)                                                                                                                                                                                                                                                                     
+        {                                                                                                                                                                                                                                                                                                                    
+            return null;                                                                                                                                                                                                                                                                                                     
+        }    
         return GenerateJwtToken(user);
     }
 

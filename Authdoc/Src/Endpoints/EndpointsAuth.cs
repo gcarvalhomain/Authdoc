@@ -15,7 +15,7 @@ public static class EndpointsAuth
 {
     public static void MapAuthEndpoints(this WebApplication app)
     {
-        app.MapPost("/Api/Auth/Register", async (RegisterUserRequest request, AuthService authService) =>
+        app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
                 if (!CanRegister(request.Email))
                 {
@@ -36,13 +36,13 @@ public static class EndpointsAuth
                 var user = await authService.RegisterAsync(request);
                 if (user is null)
                 {
-                    return BadRequest("User not found");
+                    return Results.Conflict("Email already in use");
                 }
 
-                return Results.Created($"/api/auth/{user.Id}", user);
+                return Results.Created($"/api/auth/me {user.Id}", user);
             })
             .RequireAuthorization("Admin");
-        app.MapPost("/Api/Auth/login", async (LoginRequest request, AuthService authService) =>
+        app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
         {
             var validationError = ValidateLogin(request);
             if (validationError is not null)
@@ -59,7 +59,7 @@ public static class EndpointsAuth
             return Results.Ok(loginResponse);
         });
 
-        app.MapGet("/Api/Auth/Me", (ClaimsPrincipal user) =>
+        app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
         {
             var id = user.FindFirst(ClaimTypes.NameIdentifier);
             var name = user.FindFirst(ClaimTypes.Name);
@@ -71,7 +71,8 @@ public static class EndpointsAuth
                 Name = name?.Value,
                 Email = email?.Value
             });
-        }); 
+        })
+        .RequireAuthorization("Admin"); 
     }
 
     private static string? ValidateRegister(RegisterUserRequest request)
