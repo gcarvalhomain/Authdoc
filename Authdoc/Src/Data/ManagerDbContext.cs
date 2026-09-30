@@ -19,5 +19,15 @@ public class ManagerDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<User>().Property(u => u.CreatedAt).HasDefaultValueSql("getutcdate()");
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.Property(u => u.Email)
+                .HasMaxLength(254)
+                .IsRequired();
+            
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
+        });
     }
 }
