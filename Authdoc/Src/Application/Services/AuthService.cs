@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -59,7 +60,7 @@ public class AuthService
             Name = user.Name,
             Age = user.Age,
             Gender =  user.Gender,
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };
     }

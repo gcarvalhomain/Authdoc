@@ -15,6 +15,7 @@ public class UserService
     {
         _context = context;
     }
+
     public async Task<UserResponse?> GetByIdAsync(Guid id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
@@ -22,7 +23,7 @@ public class UserService
         {
             return null;
         }
-        
+
         return new UserResponse
         {
             Id = user.Id,
@@ -38,16 +39,17 @@ public class UserService
     public async Task<bool> UpdateAsync(Guid id, UpdateUserRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
+
+        if (user is null)
         {
-            if (user is null )
-            {
-                return false;
-            }
-            user.Name = request.Name;
-            user.Age = request.Age;
-            user.Email = request.Email;
-            user.UpdatedAt = DateTime.Now;
+            return false;
         }
+
+        user.Name = request.Name;
+        user.Age = request.Age;
+        user.Email = request.Email;
+        user.UpdatedAt = DateTime.UtcNow;
+
         await _context.SaveChangesAsync();
         return true;
     }
@@ -55,21 +57,21 @@ public class UserService
     public async Task<bool> DeleteAsync(Guid id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
+
+        if (user is null)
         {
-            if (user is null)
-            {
-                return false;
-            }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return true;
+            return false;
         }
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return true;
     }
 
     public async Task<bool> EmailBelongsToAnotherUserAsync(Guid id, string email)
     {
+        
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id != id);
     }
 }
