@@ -63,10 +63,13 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
-    app.UseAuthentication();
-    app.UseAuthorization();
-    app.MapAuthEndpoints();
-    app.MapUserEndpoints();
-    app.UseHttpsRedirection();
-    app.Run();
 }
+app.UseHttpsRedirection();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapAuthEndpoints();
+app.MapUserEndpoints();
+
+app.Run();
