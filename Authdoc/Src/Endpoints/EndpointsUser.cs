@@ -1,6 +1,5 @@
 ﻿using System;
 using Authdoc.Application.DTOs;
-using Authdoc.Responses;
 using Authdoc.Application.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -13,40 +12,39 @@ public static class EndpointsUser
     public static void MapUserEndpoints(this WebApplication app)
     {
         app.MapGet("/api/users/{id}", async (Guid id, UserService userService) =>
-        {
-            var user = await userService.GetByIdAsync(id);
-            if (user is null)
             {
-                return BadRequest("User not found");
-            }
+                var user = await userService.GetByIdAsync(id);
+                if (user is null)
+                {
+                    return Results.NotFound("User not found");
+                }
 
-            return Results.Ok(user);
-        })
-        .RequireAuthorization("Admin");
+                return Results.Ok(user);
+            })
+            .RequireAuthorization("Admin");
         app.MapPut("/api/users/{id}", async (Guid id, UpdateUserRequest request, UserService userService) =>
             {
                 var validationError = ValidateUpdate(request);
                 if (validationError is not null)
                 {
-                    return BadRequest(validationError);
+                    return Results.BadRequest(validationError);
                 }
 
                 var userExist = await userService.EmailBelongsToAnotherUserAsync(id, request.Email);
                 if (userExist)
                 {
-                    return BadRequest("Email is already in use");
+                    return Results.Conflict("Email is already in use");
                 }
 
                 var update = await userService.UpdateAsync(id, request);
                 if (!update)
                 {
-                    return BadRequest("User not found");
+                    return Results.NotFound("User not found");
                 }
 
                 var user = await userService.GetByIdAsync(id);
-                {
-                    return Results.Ok(user);
-                }
+
+                return Results.Ok(user);
             })
             .RequireAuthorization("Admin");
         app.MapDelete("/api/users/{id}", async (Guid id, UserService userService) =>
@@ -54,7 +52,7 @@ public static class EndpointsUser
                 var user = await userService.DeleteAsync(id);
                 if (!user)
                 {
-                    return BadRequest("User not found");
+                    return Results.NotFound("User not found");
                 }
 
                 return Results.NoContent();
@@ -80,13 +78,5 @@ public static class EndpointsUser
         }
 
         return null;
-    }
-
-    private static IResult BadRequest(string error)
-    {
-        return Results.BadRequest(new ErrorResponse
-        {
-            Message = error
-        });
     }
 }

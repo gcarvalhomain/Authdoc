@@ -19,18 +19,18 @@ public static class EndpointsAuth
             {
                 if (!CanRegister(request.Email))
                 {
-                    return BadRequest("Email is invalid");
+                    return Results.BadRequest("Email is invalid");
                 }
 
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)
                 {
-                    return BadRequest(validationError);
+                    return Results.BadRequest(validationError);
                 }
 
                 if (request.Password != request.ConfirmationPassword)
                 {
-                    return BadRequest("Passwords do not match");
+                    return Results.BadRequest("Passwords do not match");
                 }
 
                 var user = await authService.RegisterAsync(request);
@@ -39,7 +39,7 @@ public static class EndpointsAuth
                     return Results.Conflict("Email already in use");
                 }
 
-                return Results.Created($"/api/auth/me {user.Id}", user);
+                return Results.Created($"/api/auth/me", user);
             })
             .RequireAuthorization("Admin");
         app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
@@ -47,13 +47,13 @@ public static class EndpointsAuth
             var validationError = ValidateLogin(request);
             if (validationError is not null)
             {
-                return BadRequest(validationError);
+                return Results.BadRequest(validationError);
             }
 
             var loginResponse = await authService.LoginAsync(request);
             if (loginResponse is null)
             {
-                return BadRequest("Username or password is incorrect");
+                return Results.Unauthorized();
             }
 
             return Results.Ok(loginResponse);
@@ -71,8 +71,7 @@ public static class EndpointsAuth
                 Name = name?.Value,
                 Email = email?.Value
             });
-        })
-        .RequireAuthorization("Admin"); 
+        });
     }
 
     private static string? ValidateRegister(RegisterUserRequest request)
