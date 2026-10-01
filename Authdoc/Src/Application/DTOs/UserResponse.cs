@@ -2,15 +2,17 @@
 
 namespace Authdoc.Application.DTOs;
 
-public class UserResponse
+public sealed record UserResponse
 {
-    public int Age { get; set; }
+    
+    
+    public int Age { get; init; }
     public Guid Id { get; init; }
-    public string Email { get; set; } = string.Empty;
-    public string Gender { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; } 
-    public DateTime UpdatedAt { get; set; }
+    public required string Email { get; init; } 
+    public required string Gender { get; init; } 
+    public required string Name { get; init; } 
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
     
     
 
