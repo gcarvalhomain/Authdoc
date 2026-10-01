@@ -2,13 +2,10 @@
 
 public class RegisterUserRequest
 {
-    public string Name { get; set; } = string.Empty;
-    public int Age { get; set; }
-    public string Gender { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string ConfirmationPassword { get; set; } = string.Empty;
-    
-    
+    public required string Name { get; set; }
+    public int Age { get; init; }
+    public required string Gender { get; set; }
+    public required string Email { get; set; }
+    public required string Password { get; set; }
+    public required string ConfirmationPassword { get; set; }
 }
-
