@@ -4,8 +4,8 @@ namespace Authdoc.Application.DTOs;
 
 public sealed record LoginResponse
 {
-    public UserResponse User { get; set; } = null!;
-    public string? Token { get; set; } = string.Empty;
-    public DateTime ExpiresAt { get; set; }
+    public required UserResponse User { get; init; }
+    public required string Token { get; init; }
+    public required DateTime ExpiresAt { get; init; }
     
 }

@@ -2,7 +2,7 @@
 
 namespace Authdoc.Responses;
 
-public class ErrorResponse
+public sealed record ErrorResponse
 {
-    public string Message { get; set; } = String.Empty;
+    public string Message { get; init; } = String.Empty;
 }
