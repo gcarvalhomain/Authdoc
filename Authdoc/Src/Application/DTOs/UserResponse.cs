@@ -6,13 +6,13 @@ public sealed record UserResponse
 {
     
     
-    public int Age { get; init; }
-    public Guid Id { get; init; }
+    public required int Age { get; init; }
+    public required Guid Id { get; init; }
     public required string Email { get; init; } 
     public required string Gender { get; init; } 
     public required string Name { get; init; } 
-    public DateTime CreatedAt { get; init; }
-    public DateTime UpdatedAt { get; init; }
+    public required DateTime CreatedAt { get; init; }
+    public required DateTime UpdatedAt { get; init; }
     
     
 
