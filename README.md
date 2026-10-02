@@ -103,7 +103,7 @@ sequenceDiagram
 
 ### Configuração
 
-Tudo fica em `Authdoc/appsettings.json`:
+As configurações não sensíveis ficam em `Authdoc/appsettings.json`:
 
 ```json
 {
@@ -111,7 +111,6 @@ Tudo fica em `Authdoc/appsettings.json`:
     "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=Authdoc;Trusted_Connection=True;TrustServerCertificate=True;"
   },
   "Jwt": {
-    "Key": "<chave com no mínimo 32 caracteres>",
     "Issuer": "Authdoc",
     "Audience": "Users",
     "ExpirationInMinutes": 60
@@ -120,6 +119,26 @@ Tudo fica em `Authdoc/appsettings.json`:
 ```
 
 A connection string tem uma fonte única: o `appsettings.json`. Ela é usada tanto pela aplicação quanto pelo `dotnet ef`.
+
+### JWT signing key
+
+The JWT signing key is a secret, so it is **not** stored in `appsettings.json`. The API reads it from the `Jwt:Key` setting, which must hold at least 32 bytes (HS256). Generate a random key once and store it with [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), which keeps it outside the repository:
+
+```powershell
+cd Authdoc
+
+# PowerShell
+$bytes = New-Object byte[] 64
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+dotnet user-secrets set "Jwt:Key" ([Convert]::ToBase64String($bytes))
+```
+
+```bash
+# Bash
+dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 64 | tr -d '\n')"
+```
+
+User Secrets are only loaded in the `Development` environment. In any other environment, provide the key through the `Jwt__Key` environment variable.
 
 ### Subindo a API
 
@@ -252,7 +271,7 @@ erDiagram
 - [ ] Refresh token e revogação de sessão
 - [ ] Rate limiting no login
 - [ ] Listagem paginada de usuários
-- [ ] Segredos via User Secrets / variáveis de ambiente
+- [x] Segredos via User Secrets / variáveis de ambiente
 - [ ] Testes de integração (xUnit + `WebApplicationFactory`)
 - [ ] Docker Compose (API + SQL Server) e CI com GitHub Actions
 
@@ -260,4 +279,4 @@ erDiagram
 
 ## Segurança
 
-Este repositório é um ambiente de desenvolvimento. A chave JWT e a senha do admin inicial estão versionadas **intencionalmente, apenas para facilitar a execução local**. Em qualquer ambiente real, esses valores devem vir de um cofre de segredos ou de variáveis de ambiente, e a senha do admin deve ser trocada no primeiro acesso.
+A chave JWT não é versionada: em desenvolvimento ela vem dos User Secrets e, nos demais ambientes, de variável de ambiente (veja [JWT signing key](#jwt-signing-key)). A senha do admin inicial continua versionada **intencionalmente, apenas para facilitar a execução local**. Em qualquer ambiente real, ela deve vir de um cofre de segredos ou de variável de ambiente e ser trocada no primeiro acesso.
