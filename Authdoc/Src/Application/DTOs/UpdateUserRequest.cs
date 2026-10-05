@@ -3,9 +3,9 @@ namespace Authdoc.Application.DTOs;
 
 public class UpdateUserRequest
 {
-    public string Name { get; set; } = string.Empty;
-    public int Age { get; set; } 
-    public string Email { get; set; } =  string.Empty;
+    public required string Name { get; set; }
+    public required int Age { get; set; } 
+    public required string Email { get; set; }
     
     
 }
