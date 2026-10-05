@@ -60,18 +60,19 @@ public static class EndpointsAuth
         });
 
         app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
-        {
-            var id = user.FindFirst(ClaimTypes.NameIdentifier);
-            var name = user.FindFirst(ClaimTypes.Name);
-            var email = user.FindFirst(ClaimTypes.Email);
-
-            return Results.Ok(new
             {
-                Id = id?.Value,
-                Name = name?.Value,
-                Email = email?.Value
-            });
-        });
+                var id = user.FindFirst(ClaimTypes.NameIdentifier);
+                var name = user.FindFirst(ClaimTypes.Name);
+                var email = user.FindFirst(ClaimTypes.Email);
+
+                return Results.Ok(new
+                {
+                    Id = id?.Value,
+                    Name = name?.Value,
+                    Email = email?.Value
+                });
+            })
+            .RequireAuthorization();
     }
 
     private static string? ValidateRegister(RegisterUserRequest request)
