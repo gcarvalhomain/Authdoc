@@ -57,7 +57,8 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ManagerDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-    await DbInitializer.SeedAdminAsync(dbContext, passwordHasher);
+    var adminPassword = app.Configuration["SeedData:AdminPassword"];
+    await DbInitializer.SeedAdminAsync(dbContext, passwordHasher, adminPassword);
 }
 
 // Configure the HTTP request pipeline.
