@@ -140,6 +140,17 @@ dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 64 | tr -d '\n')"
 
 User Secrets are only loaded in the `Development` environment. In any other environment, provide the key through the `Jwt__Key` environment variable.
 
+### Admin seed password
+
+The password of the initial admin is also a secret. Choose a strong password and store it in the `SeedData:AdminPassword` setting:
+
+```powershell
+cd Authdoc
+dotnet user-secrets set "SeedData:AdminPassword" "<your-strong-password>"
+```
+
+It is only required when the initial admin is created (see [Bootstrap](#bootstrap-o-primeiro-usuário)). If the admin does not exist yet and the setting is missing, the API fails at startup. In other environments, use the `SeedData__AdminPassword` environment variable.
+
 ### Subindo a API
 
 ```bash
@@ -164,11 +175,11 @@ O `DbInitializer` resolve isso na inicialização da aplicação:
 3. **Se existe um usuário com o e-mail do admin padrão, mas sem o papel**, promove esse usuário a `Admin`.
 4. **Caso contrário, cria o admin inicial**, com a senha passando pelo mesmo `IPasswordHasher` usado no fluxo de registro e login.
 
-Credenciais iniciais (apenas para ambiente de desenvolvimento):
+Credenciais iniciais:
 
 | E-mail | Senha |
 |---|---|
-| `admin@system.com` | `AdminPassword123!` |
+| `admin@system.com` | O valor configurado em `SeedData:AdminPassword` (veja [Admin seed password](#admin-seed-password)) |
 
 ### Primeiro fluxo completo
 
@@ -177,7 +188,7 @@ Credenciais iniciais (apenas para ambiente de desenvolvimento):
 POST http://localhost:5297/api/auth/login
 Content-Type: application/json
 
-{ "email": "admin@system.com", "password": "AdminPassword123!" }
+{ "email": "admin@system.com", "password": "<SeedData:AdminPassword>" }
 
 ### 2. Cadastrar um usuário (use o token retornado no passo 1)
 POST http://localhost:5297/api/auth/register
@@ -279,4 +290,4 @@ erDiagram
 
 ## Segurança
 
-A chave JWT não é versionada: em desenvolvimento ela vem dos User Secrets e, nos demais ambientes, de variável de ambiente (veja [JWT signing key](#jwt-signing-key)). A senha do admin inicial continua versionada **intencionalmente, apenas para facilitar a execução local**. Em qualquer ambiente real, ela deve vir de um cofre de segredos ou de variável de ambiente e ser trocada no primeiro acesso.
+A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento elas vêm dos User Secrets e, nos demais ambientes, de variáveis de ambiente (veja [JWT signing key](#jwt-signing-key) e [Admin seed password](#admin-seed-password)). Em qualquer ambiente real, a senha do admin deve ser trocada no primeiro acesso.
