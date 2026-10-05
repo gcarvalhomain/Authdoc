@@ -210,7 +210,7 @@ Content-Type: application/json
 |---|---|---|---|
 | `POST` | `/api/auth/login` | Público | Autentica e retorna JWT, expiração e dados do usuário |
 | `POST` | `/api/auth/register` | Admin | Cadastra um novo usuário |
-| `GET` | `/api/auth/me` | Admin | Retorna a identidade contida no token |
+| `GET` | `/api/auth/me` | Autenticado | Retorna a identidade contida no token |
 
 ### Users
 
