@@ -7,11 +7,7 @@ using Authdoc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,7 +57,8 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ManagerDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
-    await DbInitializer.SeedAdminAsync(dbContext, passwordHasher);
+    var adminPassword = app.Configuration["SeedData:AdminPassword"];
+    await DbInitializer.SeedAdminAsync(dbContext, passwordHasher, adminPassword);
 }
 
 // Configure the HTTP request pipeline.

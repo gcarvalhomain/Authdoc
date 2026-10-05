@@ -9,7 +9,7 @@ namespace Authdoc.Data;
 
 public static class DbInitializer
 {
-    public static async Task SeedAdminAsync(ManagerDbContext context, IPasswordHasher<User> passwordHasher)
+    public static async Task SeedAdminAsync(ManagerDbContext context, IPasswordHasher<User> passwordHasher, string? adminPassword)
     {
         await context.Database.MigrateAsync();
         
@@ -26,7 +26,10 @@ public static class DbInitializer
         }
         else
         {
-            string defaultPassword = "AdminPassword123!";
+            if (string.IsNullOrWhiteSpace(adminPassword))
+            {
+                throw new InvalidOperationException("SeedData:AdminPassword is not configured. See README.md for instructions.");
+            }
 
             var initialAdmin = new User
             {
@@ -38,7 +41,7 @@ public static class DbInitializer
                 Role = UserRole.Admin
             };
 
-            initialAdmin.Password = passwordHasher.HashPassword(initialAdmin, defaultPassword);
+            initialAdmin.Password = passwordHasher.HashPassword(initialAdmin, adminPassword);
 
             await context.Users.AddAsync(initialAdmin);
         }
