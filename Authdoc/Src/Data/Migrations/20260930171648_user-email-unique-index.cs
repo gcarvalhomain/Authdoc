@@ -5,7 +5,7 @@
 namespace Authdoc.Migrations
 {
     /// <inheritdoc />
-    public partial class useremailuniqueindex : Migration
+    public partial class UserEmailUniqueIndex : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
