@@ -9,6 +9,11 @@ public static class EmailValidator
 
     private static readonly string[] AllowedDomains = ["gmail.com", "outlook.com", "hotmail.com", "live.com"];
 
+    public static string Normalize(string? email)
+    {
+        return email?.Trim().ToLowerInvariant() ?? string.Empty;
+    }
+
     public static bool IsValid(string email)
     {
         if (!HasValidFormat(email))
