@@ -86,19 +86,28 @@ public class UserService
         return ChangeRoleResult.Success;
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task<DeleteUserResult> DeleteAsync(Guid id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
 
         if (user is null)
         {
-            return false;
+            return DeleteUserResult.UserNotFound;
+        }
+
+        if (user.Role == UserRole.Admin)
+        {
+            var adminCount = await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
+            if (adminCount <= 1)
+            {
+                return DeleteUserResult.LastAdmin;
+            }
         }
 
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
 
-        return true;
+        return DeleteUserResult.Deleted;
     }
 
     public async Task<bool> EmailBelongsToAnotherUserAsync(Guid id, string email)
@@ -111,6 +120,13 @@ public class UserService
 public enum ChangeRoleResult
 {
     Success,
+    UserNotFound,
+    LastAdmin
+}
+
+public enum DeleteUserResult
+{
+    Deleted,
     UserNotFound,
     LastAdmin
 }
