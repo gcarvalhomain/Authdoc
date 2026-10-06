@@ -13,7 +13,7 @@ namespace Authdoc.Migrations
 {
     [DbContext(typeof(ManagerDbContext))]
     [Migration("20260930171648_user-email-unique-index")]
-    partial class useremailuniqueindex
+    partial class UserEmailUniqueIndex
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
