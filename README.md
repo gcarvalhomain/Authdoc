@@ -245,6 +245,24 @@ Content-Type: application/json
 - Um admin não pode excluir o próprio usuário, e o último admin do sistema não pode ser excluído
 - A mudança de papel só vale no token após um novo login, pois o papel fica gravado no JWT
 
+### Formato de erro
+
+Toda resposta de erro tem o mesmo formato, com um `code` estável (para o cliente tratar) e uma `message` legível:
+
+```json
+{ "code": "EMAIL_INVALID", "message": "Email is invalid or its domain is not allowed" }
+```
+
+| Status | Códigos |
+|---|---|
+| `400` | `NAME_REQUIRED`, `GENDER_REQUIRED`, `AGE_TOO_LOW`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER` |
+| `401` | `INVALID_CREDENTIALS`, `UNAUTHORIZED` |
+| `403` | `FORBIDDEN` |
+| `404` | `USER_NOT_FOUND` |
+| `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
+
+Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`.
+
 ---
 
 ## Roadmap

@@ -1,8 +1,7 @@
-﻿using System;
-
 namespace Authdoc.Responses;
 
 public sealed record ErrorResponse
 {
-    public string Message { get; init; } = String.Empty;
+    public required string Code { get; init; }
+    public required string Message { get; init; }
 }
