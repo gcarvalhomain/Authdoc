@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Authdoc.Application.DTOs;
 using Authdoc.Data;
+using Authdoc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -31,6 +32,7 @@ public class UserService
             Email = user.Email,
             Gender = user.Gender,
             Age = user.Age,
+            Role = user.Role.ToString(),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };
@@ -54,6 +56,36 @@ public class UserService
         return true;
     }
 
+    public async Task<ChangeRoleResult> ChangeRoleAsync(Guid id, UserRole role)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
+
+        if (user is null)
+        {
+            return ChangeRoleResult.UserNotFound;
+        }
+
+        if (user.Role == role)
+        {
+            return ChangeRoleResult.Success;
+        }
+
+        if (user.Role == UserRole.Admin)
+        {
+            var adminCount = await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
+            if (adminCount <= 1)
+            {
+                return ChangeRoleResult.LastAdmin;
+            }
+        }
+
+        user.Role = role;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return ChangeRoleResult.Success;
+    }
+
     public async Task<bool> DeleteAsync(Guid id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
@@ -74,4 +106,11 @@ public class UserService
         
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id != id);
     }
+}
+
+public enum ChangeRoleResult
+{
+    Success,
+    UserNotFound,
+    LastAdmin
 }

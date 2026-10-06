@@ -60,6 +60,7 @@ public class AuthService
             Name = user.Name,
             Age = user.Age,
             Gender =  user.Gender,
+            Role = user.Role.ToString(),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };
@@ -118,6 +119,7 @@ public class AuthService
                 Email = user.Email,
                 Age = user.Age,
                 Gender = user.Gender,
+                Role = user.Role.ToString(),
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
             }

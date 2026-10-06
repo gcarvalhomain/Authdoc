@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Security.Claims;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
+using Authdoc.Models.Entities;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
@@ -47,6 +49,36 @@ public static class EndpointsUser
                 return Results.Ok(user);
             })
             .RequireAuthorization("Admin");
+        app.MapPatch("/api/users/{id}/role", async (Guid id, UpdateUserRoleRequest request, ClaimsPrincipal currentUser, UserService userService) =>
+            {
+                var role = ParseRole(request.Role);
+                if (role is null)
+                {
+                    return Results.BadRequest("Role must be Admin or User");
+                }
+
+                var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId == id.ToString())
+                {
+                    return Results.BadRequest("You cannot change your own role");
+                }
+
+                var result = await userService.ChangeRoleAsync(id, role.Value);
+                if (result == ChangeRoleResult.UserNotFound)
+                {
+                    return Results.NotFound("User not found");
+                }
+
+                if (result == ChangeRoleResult.LastAdmin)
+                {
+                    return Results.Conflict("Cannot remove the last admin");
+                }
+
+                var user = await userService.GetByIdAsync(id);
+
+                return Results.Ok(user);
+            })
+            .RequireAuthorization("Admin");
         app.MapDelete("/api/users/{id}", async (Guid id, UserService userService) =>
             {
                 var user = await userService.DeleteAsync(id);
@@ -75,6 +107,19 @@ public static class EndpointsUser
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return "Name is required";
+        }
+
+        return null;
+    }
+
+    private static UserRole? ParseRole(string? role)
+    {
+        foreach (var value in Enum.GetValues<UserRole>())
+        {
+            if (string.Equals(value.ToString(), role, StringComparison.OrdinalIgnoreCase))
+            {
+                return value;
+            }
         }
 
         return null;
