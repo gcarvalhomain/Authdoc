@@ -31,6 +31,7 @@ public static class DbInitializer
                 throw new InvalidOperationException("SeedData:AdminPassword is not configured. See README.md for instructions.");
             }
 
+            var now = DateTime.UtcNow;
             var initialAdmin = new User
             {
                 Id = Guid.NewGuid(),
@@ -38,7 +39,9 @@ public static class DbInitializer
                 Email = adminEmail,
                 Age = 25,
                 Gender = "Male",
-                Role = UserRole.Admin
+                Role = UserRole.Admin,
+                CreatedAt = now,
+                UpdatedAt = now
             };
 
             initialAdmin.Password = passwordHasher.HashPassword(initialAdmin, adminPassword);

@@ -38,6 +38,7 @@ public class AuthService
             return null;
         }
 
+        var now = DateTime.UtcNow;
         var user = new User
         {
             Name = request.Name,
@@ -45,7 +46,8 @@ public class AuthService
             Age = request.Age,
             Gender = request.Gender,
             Password = request.Password,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
         
         user.Password = _passwordHasher.HashPassword(user, request.Password);
