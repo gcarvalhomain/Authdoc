@@ -234,7 +234,8 @@ Content-Type: application/json
 
 ### Regras de negócio
 
-- E-mail válido, de um domínio permitido (`gmail.com`, `outlook.com`, `hotmail.com`, `live.com`) e único na base
+- E-mail válido, de um domínio permitido (`gmail.com`, `outlook.com`, `hotmail.com`, `live.com`) e único na base, validado no cadastro e na atualização
+- E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
 - Idade mínima de 18 anos, validada no cadastro e na atualização
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
 - Gênero informado no cadastro e imutável depois

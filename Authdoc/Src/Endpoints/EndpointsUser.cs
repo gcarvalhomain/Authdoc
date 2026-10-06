@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
 using Authdoc.Models.Entities;
+using Authdoc.Validators;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
@@ -26,6 +27,7 @@ public static class EndpointsUser
             .RequireAuthorization("Admin");
         app.MapPut("/api/users/{id}", async (Guid id, UpdateUserRequest request, UserService userService) =>
             {
+                request.Email = EmailValidator.Normalize(request.Email);
                 var validationError = ValidateUpdate(request);
                 if (validationError is not null)
                 {
@@ -108,6 +110,11 @@ public static class EndpointsUser
         if (string.IsNullOrWhiteSpace(request.Email))
         {
             return "Email is required";
+        }
+
+        if (!EmailValidator.IsValid(request.Email))
+        {
+            return "Email is invalid";
         }
 
         if (request.Age < 18)

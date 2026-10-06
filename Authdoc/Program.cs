@@ -23,6 +23,11 @@ if (string.IsNullOrWhiteSpace(jwtKey))
     throw new InvalidOperationException("Jwt:Key is not configured. See the 'JWT signing key' section in README.md.");
 }
 
+if (!int.TryParse(builder.Configuration["Jwt:ExpirationInMinutes"], out var jwtExpiration) || jwtExpiration <= 0)
+{
+    throw new InvalidOperationException("Jwt:ExpirationInMinutes must be a positive number.");
+}
+
 builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
