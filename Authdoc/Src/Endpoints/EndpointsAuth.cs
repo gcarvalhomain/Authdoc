@@ -38,7 +38,7 @@ public static class EndpointsAuth
                     return Results.Conflict("Email already in use");
                 }
 
-                return Results.Created($"/api/auth/me", user);
+                return Results.Created($"/api/users/{user.Id}", user);
             })
             .RequireAuthorization("Admin");
         app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
