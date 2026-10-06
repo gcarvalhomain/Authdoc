@@ -17,6 +17,10 @@ public static class ApiErrors
 
     // Authentication (401)
     public static readonly ErrorResponse InvalidCredentials = new() { Code = "INVALID_CREDENTIALS", Message = "Email or password is incorrect" };
+    public static readonly ErrorResponse Unauthorized = new() { Code = "UNAUTHORIZED", Message = "A valid token is required" };
+
+    // Authorization (403)
+    public static readonly ErrorResponse Forbidden = new() { Code = "FORBIDDEN", Message = "You do not have permission to access this resource" };
 
     // Not found (404)
     public static readonly ErrorResponse UserNotFound = new() { Code = "USER_NOT_FOUND", Message = "User not found" };
