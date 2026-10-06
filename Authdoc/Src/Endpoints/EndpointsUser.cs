@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
 using Authdoc.Models.Entities;
+using Authdoc.Responses;
 using Authdoc.Validators;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +20,7 @@ public static class EndpointsUser
                 var user = await userService.GetByIdAsync(id);
                 if (user is null)
                 {
-                    return Results.NotFound("User not found");
+                    return Results.NotFound(ApiErrors.UserNotFound);
                 }
 
                 return Results.Ok(user);
@@ -37,13 +38,13 @@ public static class EndpointsUser
                 var userExist = await userService.EmailBelongsToAnotherUserAsync(id, request.Email);
                 if (userExist)
                 {
-                    return Results.Conflict("Email is already in use");
+                    return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
 
                 var update = await userService.UpdateAsync(id, request);
                 if (!update)
                 {
-                    return Results.NotFound("User not found");
+                    return Results.NotFound(ApiErrors.UserNotFound);
                 }
 
                 var user = await userService.GetByIdAsync(id);
@@ -56,24 +57,24 @@ public static class EndpointsUser
                 var role = ParseRole(request.Role);
                 if (role is null)
                 {
-                    return Results.BadRequest("Role must be Admin or User");
+                    return Results.BadRequest(ApiErrors.RoleInvalid);
                 }
 
                 var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (currentUserId == id.ToString())
                 {
-                    return Results.BadRequest("You cannot change your own role");
+                    return Results.BadRequest(ApiErrors.CannotChangeOwnRole);
                 }
 
                 var result = await userService.ChangeRoleAsync(id, role.Value);
                 if (result == ChangeRoleResult.UserNotFound)
                 {
-                    return Results.NotFound("User not found");
+                    return Results.NotFound(ApiErrors.UserNotFound);
                 }
 
                 if (result == ChangeRoleResult.LastAdmin)
                 {
-                    return Results.Conflict("Cannot remove the last admin");
+                    return Results.Conflict(ApiErrors.LastAdmin);
                 }
 
                 var user = await userService.GetByIdAsync(id);
@@ -86,18 +87,18 @@ public static class EndpointsUser
                 var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (currentUserId == id.ToString())
                 {
-                    return Results.BadRequest("You cannot delete your own user");
+                    return Results.BadRequest(ApiErrors.CannotDeleteOwnUser);
                 }
 
                 var result = await userService.DeleteAsync(id);
                 if (result == DeleteUserResult.UserNotFound)
                 {
-                    return Results.NotFound("User not found");
+                    return Results.NotFound(ApiErrors.UserNotFound);
                 }
 
                 if (result == DeleteUserResult.LastAdmin)
                 {
-                    return Results.Conflict("Cannot remove the last admin");
+                    return Results.Conflict(ApiErrors.LastAdmin);
                 }
 
                 return Results.NoContent();
@@ -105,26 +106,26 @@ public static class EndpointsUser
             .RequireAuthorization("Admin");
     }
 
-    private static string? ValidateUpdate(UpdateUserRequest request)
+    private static ErrorResponse? ValidateUpdate(UpdateUserRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return "Email is required";
+            return ApiErrors.EmailRequired;
         }
 
         if (!EmailValidator.IsValid(request.Email))
         {
-            return "Email is invalid";
+            return ApiErrors.EmailInvalid;
         }
 
         if (request.Age < 18)
         {
-            return "Age must be 18 years of age or older";
+            return ApiErrors.AgeTooLow;
         }
 
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return "Name is required";
+            return ApiErrors.NameRequired;
         }
 
         return null;

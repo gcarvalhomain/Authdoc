@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Security.Claims;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
@@ -16,11 +16,6 @@ public static class EndpointsAuth
         app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
                 request.Email = EmailValidator.Normalize(request.Email);
-                if (!EmailValidator.IsValid(request.Email))
-                {
-                    return Results.BadRequest("Email is invalid");
-                }
-
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)
                 {
@@ -29,13 +24,13 @@ public static class EndpointsAuth
 
                 if (request.Password != request.ConfirmationPassword)
                 {
-                    return Results.BadRequest("Passwords do not match");
+                    return Results.BadRequest(ApiErrors.PasswordsDoNotMatch);
                 }
 
                 var user = await authService.RegisterAsync(request);
                 if (user is null)
                 {
-                    return Results.Conflict("Email already in use");
+                    return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
 
                 return Results.Created($"/api/users/{user.Id}", user);
@@ -53,7 +48,7 @@ public static class EndpointsAuth
             var loginResponse = await authService.LoginAsync(request);
             if (loginResponse is null)
             {
-                return Results.Unauthorized();
+                return Results.Json(ApiErrors.InvalidCredentials, statusCode: StatusCodes.Status401Unauthorized);
             }
 
             return Results.Ok(loginResponse);
@@ -75,50 +70,58 @@ public static class EndpointsAuth
             .RequireAuthorization();
     }
 
-    private static string? ValidateRegister(RegisterUserRequest request)
+    private static ErrorResponse? ValidateRegister(RegisterUserRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.Email))
+        {
+            return ApiErrors.EmailRequired;
+        }
+
+        if (!EmailValidator.IsValid(request.Email))
+        {
+            return ApiErrors.EmailInvalid;
+        }
+
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            return "Name is required";
+            return ApiErrors.NameRequired;
         }
 
         if (string.IsNullOrWhiteSpace(request.Gender))
         {
-            return "Gender is required";
+            return ApiErrors.GenderRequired;
         }
 
         if (request.Age < 18)
         {
-            return "Age must be 18 years of age or older";
+            return ApiErrors.AgeTooLow;
+        }
+
+        if (string.IsNullOrEmpty(request.Password))
+        {
+            return ApiErrors.PasswordRequired;
         }
 
         if (request.Password.Length < 6)
         {
-            return "Password must be at least 6 characters long";
+            return ApiErrors.PasswordTooShort;
         }
+
         return null;
     }
 
-    public static string? ValidateLogin(LoginRequest request)
+    private static ErrorResponse? ValidateLogin(LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
         {
-            return "Email  is required";
+            return ApiErrors.EmailRequired;
         }
 
         if (string.IsNullOrWhiteSpace(request.Password))
         {
-            return "Password is required";
+            return ApiErrors.PasswordRequired;
         }
 
         return null;
-    }
-
-    private static IResult BadRequest(string error)
-    {
-        return Results.BadRequest(new ErrorResponse
-        {
-            Message = error
-        });
     }
 }
