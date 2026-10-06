@@ -229,6 +229,7 @@ Content-Type: application/json
 |---|---|---|---|
 | `GET` | `/api/users/{id}` | Admin | Consulta um usuário |
 | `PUT` | `/api/users/{id}` | Admin | Atualiza nome, idade e e-mail |
+| `PATCH` | `/api/users/{id}/role` | Admin | Altera o papel do usuário (`Admin` ou `User`) |
 | `DELETE` | `/api/users/{id}` | Admin | Remove um usuário |
 
 ### Regras de negócio
@@ -238,6 +239,9 @@ Content-Type: application/json
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
 - Gênero informado no cadastro e imutável depois
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
+- Papel alterado apenas por `PATCH /api/users/{id}/role`, com corpo `{ "role": "Admin" }` ou `{ "role": "User" }`
+- Um admin não pode alterar o próprio papel, e o último admin do sistema não pode ser rebaixado
+- A mudança de papel só vale no token após um novo login, pois o papel fica gravado no JWT
 
 ---
 
