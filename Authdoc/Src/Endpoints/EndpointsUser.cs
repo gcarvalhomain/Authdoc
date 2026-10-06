@@ -79,12 +79,23 @@ public static class EndpointsUser
                 return Results.Ok(user);
             })
             .RequireAuthorization("Admin");
-        app.MapDelete("/api/users/{id}", async (Guid id, UserService userService) =>
+        app.MapDelete("/api/users/{id}", async (Guid id, ClaimsPrincipal currentUser, UserService userService) =>
             {
-                var user = await userService.DeleteAsync(id);
-                if (!user)
+                var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (currentUserId == id.ToString())
+                {
+                    return Results.BadRequest("You cannot delete your own user");
+                }
+
+                var result = await userService.DeleteAsync(id);
+                if (result == DeleteUserResult.UserNotFound)
                 {
                     return Results.NotFound("User not found");
+                }
+
+                if (result == DeleteUserResult.LastAdmin)
+                {
+                    return Results.Conflict("Cannot remove the last admin");
                 }
 
                 return Results.NoContent();

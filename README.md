@@ -241,6 +241,7 @@ Content-Type: application/json
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
 - Papel alterado apenas por `PATCH /api/users/{id}/role`, com corpo `{ "role": "Admin" }` ou `{ "role": "User" }`
 - Um admin não pode alterar o próprio papel, e o último admin do sistema não pode ser rebaixado
+- Um admin não pode excluir o próprio usuário, e o último admin do sistema não pode ser excluído
 - A mudança de papel só vale no token após um novo login, pois o papel fica gravado no JWT
 
 ---
