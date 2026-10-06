@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Linq;
 using System.Security.Claims;
-using System.Net.Mail;
-using System.Text.RegularExpressions;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
 using Authdoc.Responses;
+using Authdoc.Validators;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 
@@ -17,7 +15,7 @@ public static class EndpointsAuth
     {
         app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
-                if (!CanRegister(request.Email))
+                if (!EmailValidator.IsValid(request.Email))
                 {
                     return Results.BadRequest("Email is invalid");
                 }
@@ -99,8 +97,6 @@ public static class EndpointsAuth
         return null;
     }
 
-    private static readonly  Regex EmailRegex = new (@"^[^@\s]+@[^@\s]+\.[^@\s]+$", options: RegexOptions.Compiled | RegexOptions.IgnoreCase);
-    
     public static string? ValidateLogin(LoginRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.Email))
@@ -114,34 +110,6 @@ public static class EndpointsAuth
         }
 
         return null;
-    }
-
-    private static bool EmailValid(string email)
-    {
-        try
-        {
-            var end = new MailAddress(email);
-            return end.Address == email && EmailRegex.IsMatch(email);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static bool DomainAllowed(string email)
-    {
-        //Utilization of Arrays
-        string[] domainsAlloweds = ["gmail.com", "outlook.com", "hotmail.com", "live.com"];
-        string domain = email.Split('@')[1].ToLower();
-        return domainsAlloweds.Contains(domain);
-    }
-
-    private static bool CanRegister(string email)
-    {
-        if (!EmailValid(email))
-            return false;
-        return DomainAllowed(email);
     }
 
     private static IResult BadRequest(string error)
