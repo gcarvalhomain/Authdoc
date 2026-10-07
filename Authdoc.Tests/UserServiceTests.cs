@@ -65,4 +65,41 @@ public class UserServiceTests
         Assert.Equal(DeleteUserResult.Deleted, result);
         Assert.Null(await context.Users.FindAsync(user.Id));
     }
+
+    [Fact]
+    public async Task ChangeRoleAsync_WhenDemotingLastAdmin_ReturnsLastAdmin()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var admin = new User { Name = "Admin", Email = "admin@gmail.com", Role = UserRole.Admin };
+        context.Users.Add(admin);
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        var result = await service.ChangeRoleAsync(admin.Id, UserRole.User);
+
+        // Assert
+        Assert.Equal(ChangeRoleResult.LastAdmin, result);
+        Assert.Equal(UserRole.Admin, admin.Role);
+    }
+
+    [Fact]
+    public async Task ChangeRoleAsync_WhenPromotingUser_ReturnsSuccess()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var admin = new User { Name = "Admin", Email = "admin@gmail.com", Role = UserRole.Admin };
+        var user = new User { Name = "User", Email = "user@gmail.com" };
+        context.Users.AddRange(admin, user);
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        var result = await service.ChangeRoleAsync(user.Id, UserRole.Admin);
+
+        // Assert
+        Assert.Equal(ChangeRoleResult.Success, result);
+        Assert.Equal(UserRole.Admin, user.Role);
+    }
 }
