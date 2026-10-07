@@ -238,6 +238,7 @@ Content-Type: application/json
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
 - Idade mínima de 18 anos, validada no cadastro e na atualização
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
+- Login limitado a 5 tentativas por minuto por IP; acima disso a API responde `429`
 - Gênero informado no cadastro e imutável depois
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
 - Papel alterado apenas por `PATCH /api/users/{id}/role`, com corpo `{ "role": "Admin" }` ou `{ "role": "User" }`
@@ -260,6 +261,7 @@ Toda resposta de erro tem o mesmo formato, com um `code` estável (para o client
 | `403` | `FORBIDDEN` |
 | `404` | `USER_NOT_FOUND` |
 | `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
+| `429` | `TOO_MANY_REQUESTS` |
 
 Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`.
 
