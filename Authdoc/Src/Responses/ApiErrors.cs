@@ -28,4 +28,7 @@ public static class ApiErrors
     // Conflict (409)
     public static readonly ErrorResponse EmailAlreadyInUse = new() { Code = "EMAIL_ALREADY_IN_USE", Message = "Email is already in use" };
     public static readonly ErrorResponse LastAdmin = new() { Code = "LAST_ADMIN", Message = "Cannot remove the last admin" };
+
+    // Too many requests (429)
+    public static readonly ErrorResponse TooManyRequests = new() { Code = "TOO_MANY_REQUESTS", Message = "Too many requests" };
 }
