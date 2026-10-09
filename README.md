@@ -330,3 +330,13 @@ erDiagram
 ## Segurança
 
 A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento elas vêm dos User Secrets e, nos demais ambientes, de variáveis de ambiente (veja [JWT signing key](#jwt-signing-key) e [Admin seed password](#admin-seed-password)). Em qualquer ambiente real, a senha do admin deve ser trocada no primeiro acesso.
+
+### Limitações conhecidas
+
+| Limitação | Impacto | Possível solução |
+|---|---|---|
+| O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes` | Tokens de vida curta + refresh token, ou um *security stamp* verificado a cada requisição |
+| O login responde mais rápido quando o e-mail não existe | Um atacante pode medir o tempo e descobrir quais e-mails estão cadastrados | Verificar um hash falso mesmo quando o usuário não existe |
+| A regra do último admin não é atômica | Duas requisições simultâneas podem rebaixar ou excluir os dois últimos admins | Transação com isolamento adequado ou trava no banco |
+| O rate limiting fica na memória e é por IP | Zera quando a API reinicia, não é compartilhado entre instâncias e, atrás de um proxy, todos podem parecer o mesmo IP | Rate limiting distribuído (ex.: Redis) e configurar `ForwardedHeaders` |
+| Os testes de integração usam banco em memória | O índice único de e-mail não é verificado pelo banco nos testes | Testes com SQL Server real (ex.: Testcontainers) |
