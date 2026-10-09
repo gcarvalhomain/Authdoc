@@ -13,6 +13,8 @@ public static class ApiErrors
     public static readonly ErrorResponse PasswordsDoNotMatch = new() { Code = "PASSWORDS_DO_NOT_MATCH", Message = "Passwords do not match" };
     public static readonly ErrorResponse RoleInvalid = new() { Code = "ROLE_INVALID", Message = "Role must be Admin or User" };
     public static readonly ErrorResponse CannotChangeOwnRole = new() { Code = "CANNOT_CHANGE_OWN_ROLE", Message = "You cannot change your own role" };
+    public static readonly ErrorResponse PageInvalid = new() { Code = "PAGE_INVALID", Message = "Page must be 1 or greater" };
+    public static readonly ErrorResponse PageSizeInvalid = new() { Code = "PAGE_SIZE_INVALID", Message = "Page size must be between 1 and 100" };
     public static readonly ErrorResponse CannotDeleteOwnUser = new() { Code = "CANNOT_DELETE_OWN_USER", Message = "You cannot delete your own user" };
 
     // Authentication (401)

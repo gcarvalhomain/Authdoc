@@ -13,8 +13,27 @@ namespace Authdoc.Endpoints;
 
 public static class EndpointsUser
 {
+    private const int MaxPageSize = 100;
+
     public static void MapUserEndpoints(this WebApplication app)
     {
+        app.MapGet("/api/users", async (UserService userService, int page = 1, int pageSize = 10) =>
+            {
+                if (page < 1)
+                {
+                    return Results.BadRequest(ApiErrors.PageInvalid);
+                }
+
+                if (pageSize < 1 || pageSize > MaxPageSize)
+                {
+                    return Results.BadRequest(ApiErrors.PageSizeInvalid);
+                }
+
+                var users = await userService.ListAsync(page, pageSize);
+
+                return Results.Ok(users);
+            })
+            .RequireAuthorization("Admin");
         app.MapGet("/api/users/{id}", async (Guid id, UserService userService) =>
             {
                 var user = await userService.GetByIdAsync(id);
