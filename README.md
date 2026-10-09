@@ -232,14 +232,17 @@ Content-Type: application/json
 
 | Método | Rota | Acesso | Descrição |
 |---|---|---|---|
-| `POST` | `/api/auth/login` | Público | Autentica e retorna JWT, expiração e dados do usuário |
+| `POST` | `/api/auth/login` | Público | Autentica e retorna JWT, refresh token, expirações e dados do usuário |
+| `POST` | `/api/auth/refresh` | Público | Troca um refresh token válido por um novo par de tokens |
+| `PUT` | `/api/auth/password` | Autenticado | Troca a própria senha (encerra as outras sessões) |
 | `POST` | `/api/auth/register` | Admin | Cadastra um novo usuário |
-| `GET` | `/api/auth/me` | Autenticado | Retorna a identidade contida no token |
+| `GET` | `/api/auth/me` | Autenticado | Retorna a identidade contida no token, incluindo o papel |
 
 ### Users
 
 | Método | Rota | Acesso | Descrição |
 |---|---|---|---|
+| `GET` | `/api/users?page=1&pageSize=10` | Admin | Lista usuários com paginação (`pageSize` de 1 a 100) |
 | `GET` | `/api/users/{id}` | Admin | Consulta um usuário |
 | `PUT` | `/api/users/{id}` | Admin | Atualiza nome, idade e e-mail |
 | `PATCH` | `/api/users/{id}/role` | Admin | Altera o papel do usuário (`Admin` ou `User`) |
@@ -251,7 +254,10 @@ Content-Type: application/json
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
 - Idade mínima de 18 anos, validada no cadastro e na atualização
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
-- Login limitado a 5 tentativas por minuto por IP; acima disso a API responde `429`
+- Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
+- O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
+- Trocar a senha revoga todos os refresh tokens do usuário
+- Uma mudança de papel passa a valer no próximo refresh, pois o novo token é montado a partir do usuário atual
 - Gênero informado no cadastro e imutável depois
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
 - Papel alterado apenas por `PATCH /api/users/{id}/role`, com corpo `{ "role": "Admin" }` ou `{ "role": "User" }`
@@ -269,8 +275,8 @@ Toda resposta de erro tem o mesmo formato, com um `code` estável (para o client
 
 | Status | Códigos |
 |---|---|
-| `400` | `NAME_REQUIRED`, `GENDER_REQUIRED`, `AGE_TOO_LOW`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER` |
-| `401` | `INVALID_CREDENTIALS`, `UNAUTHORIZED` |
+| `400` | `NAME_REQUIRED`, `GENDER_REQUIRED`, `AGE_TOO_LOW`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
+| `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
 | `404` | `USER_NOT_FOUND` |
 | `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
@@ -318,9 +324,9 @@ erDiagram
 - [ ] Validação centralizada (FluentValidation) e respostas de erro em `ProblemDetails`
 - [ ] Tratamento global de exceções
 - [ ] Índice único e limites de tamanho nas colunas de `User`
-- [ ] Refresh token e revogação de sessão
+- [x] Refresh token e revogação de sessão
 - [x] Rate limiting no login
-- [ ] Listagem paginada de usuários
+- [x] Listagem paginada de usuários
 - [x] Segredos via User Secrets / variáveis de ambiente
 - [x] Testes unitários e de integração (xUnit + `WebApplicationFactory`)
 - [ ] Docker Compose (API + SQL Server) e CI com GitHub Actions
@@ -335,7 +341,7 @@ A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento
 
 | Limitação | Impacto | Possível solução |
 |---|---|---|
-| O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes` | Tokens de vida curta + refresh token, ou um *security stamp* verificado a cada requisição |
+| O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes`. O refresh já devolve o papel novo, mas o token antigo segue válido até vencer | Reduzir `Jwt:ExpirationInMinutes` (o refresh evita logins repetidos) ou verificar um *security stamp* a cada requisição |
 | O login responde mais rápido quando o e-mail não existe | Um atacante pode medir o tempo e descobrir quais e-mails estão cadastrados | Verificar um hash falso mesmo quando o usuário não existe |
 | A regra do último admin não é atômica | Duas requisições simultâneas podem rebaixar ou excluir os dois últimos admins | Transação com isolamento adequado ou trava no banco |
 | O rate limiting fica na memória e é por IP | Zera quando a API reinicia, não é compartilhado entre instâncias e, atrás de um proxy, todos podem parecer o mesmo IP | Rate limiting distribuído (ex.: Redis) e configurar `ForwardedHeaders` |
