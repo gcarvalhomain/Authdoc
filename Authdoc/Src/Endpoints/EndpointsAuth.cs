@@ -60,12 +60,14 @@ public static class EndpointsAuth
                 var id = user.FindFirst(ClaimTypes.NameIdentifier);
                 var name = user.FindFirst(ClaimTypes.Name);
                 var email = user.FindFirst(ClaimTypes.Email);
+                var role = user.FindFirst(ClaimTypes.Role);
 
                 return Results.Ok(new
                 {
                     Id = id?.Value,
                     Name = name?.Value,
-                    Email = email?.Value
+                    Email = email?.Value,
+                    Role = role?.Value
                 });
             })
             .RequireAuthorization();

@@ -60,6 +60,22 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task Me_WithAdminToken_ReturnsRole()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+
+        // Act
+        var me = await adminClient.GetFromJsonAsync<MeResponse>("/api/auth/me");
+
+        // Assert
+        Assert.Equal(AuthdocApiFactory.AdminEmail, me!.Email);
+        Assert.Equal("Admin", me.Role);
+    }
+
+    private sealed record MeResponse(string Id, string Name, string Email, string Role);
+
+    [Fact]
     public async Task Register_WithExistingEmail_Returns409EmailAlreadyInUse()
     {
         // Arrange
