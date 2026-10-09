@@ -162,6 +162,19 @@ dotnet run --project Authdoc
 - API: `http://localhost:5297`
 - Documentação interativa (Scalar): `http://localhost:5297/scalar`
 
+### Rodando os testes
+
+```bash
+dotnet test
+```
+
+| Tipo | O que cobre |
+|---|---|
+| Unitários | `EmailValidator` e as regras do `UserService` (último admin, exclusão, troca de papel) |
+| Integração | A API inteira via HTTP com `WebApplicationFactory`: status e códigos de erro (`401`, `403`, `404`, `409`, `400`, `429`) |
+
+Os testes usam um banco **em memória** e configuração própria, então não precisam de SQL Server nem de User Secrets.
+
 ---
 
 ## Bootstrap: o primeiro usuário
@@ -306,10 +319,10 @@ erDiagram
 - [ ] Tratamento global de exceções
 - [ ] Índice único e limites de tamanho nas colunas de `User`
 - [ ] Refresh token e revogação de sessão
-- [ ] Rate limiting no login
+- [x] Rate limiting no login
 - [ ] Listagem paginada de usuários
 - [x] Segredos via User Secrets / variáveis de ambiente
-- [ ] Testes de integração (xUnit + `WebApplicationFactory`)
+- [x] Testes unitários e de integração (xUnit + `WebApplicationFactory`)
 - [ ] Docker Compose (API + SQL Server) e CI com GitHub Actions
 
 ---
