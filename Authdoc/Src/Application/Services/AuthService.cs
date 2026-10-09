@@ -102,6 +102,37 @@ public class AuthService
         return await CreateSessionAsync(storedToken.User);
     }
 
+    public async Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == userId);
+        if (user is null)
+        {
+            return ChangePasswordResult.UserNotFound;
+        }
+
+        var result = _passwordHasher.VerifyHashedPassword(user, user.Password, request.CurrentPassword);
+        if (result == PasswordVerificationResult.Failed)
+        {
+            return ChangePasswordResult.WrongCurrentPassword;
+        }
+
+        var now = DateTime.UtcNow;
+        user.Password = _passwordHasher.HashPassword(user, request.NewPassword);
+        user.UpdatedAt = now;
+
+        var activeTokens = await _context.RefreshTokens
+            .Where(token => token.UserId == userId && token.RevokedAt == null)
+            .ToListAsync();
+
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = now;
+        }
+
+        await _context.SaveChangesAsync();
+        return ChangePasswordResult.Success;
+    }
+
     private async Task<LoginResponse> CreateSessionAsync(User user)
     {
         var refreshToken = GenerateRefreshToken();
@@ -180,4 +211,11 @@ public class AuthService
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
+}
+
+public enum ChangePasswordResult
+{
+    Success,
+    UserNotFound,
+    WrongCurrentPassword
 }

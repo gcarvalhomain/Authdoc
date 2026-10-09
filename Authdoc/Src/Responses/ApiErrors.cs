@@ -13,6 +13,9 @@ public static class ApiErrors
     public static readonly ErrorResponse PasswordsDoNotMatch = new() { Code = "PASSWORDS_DO_NOT_MATCH", Message = "Passwords do not match" };
     public static readonly ErrorResponse RoleInvalid = new() { Code = "ROLE_INVALID", Message = "Role must be Admin or User" };
     public static readonly ErrorResponse CannotChangeOwnRole = new() { Code = "CANNOT_CHANGE_OWN_ROLE", Message = "You cannot change your own role" };
+    public static readonly ErrorResponse CurrentPasswordRequired = new() { Code = "CURRENT_PASSWORD_REQUIRED", Message = "Current password is required" };
+    public static readonly ErrorResponse CurrentPasswordIncorrect = new() { Code = "CURRENT_PASSWORD_INCORRECT", Message = "Current password is incorrect" };
+    public static readonly ErrorResponse NewPasswordSameAsCurrent = new() { Code = "NEW_PASSWORD_SAME_AS_CURRENT", Message = "New password must be different from the current password" };
     public static readonly ErrorResponse RefreshTokenRequired = new() { Code = "REFRESH_TOKEN_REQUIRED", Message = "Refresh token is required" };
     public static readonly ErrorResponse PageInvalid = new() { Code = "PAGE_INVALID", Message = "Page must be 1 or greater" };
     public static readonly ErrorResponse PageSizeInvalid = new() { Code = "PAGE_SIZE_INVALID", Message = "Page size must be between 1 and 100" };
