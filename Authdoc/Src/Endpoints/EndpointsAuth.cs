@@ -55,17 +55,65 @@ public static class EndpointsAuth
         })
         .RequireRateLimiting("login");
 
+        app.MapPut("/api/auth/password", async (ChangePasswordRequest request, ClaimsPrincipal currentUser, AuthService authService) =>
+            {
+                var validationError = ValidateChangePassword(request);
+                if (validationError is not null)
+                {
+                    return Results.BadRequest(validationError);
+                }
+
+                var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(currentUserId, out var userId))
+                {
+                    return Results.Json(ApiErrors.Unauthorized, statusCode: StatusCodes.Status401Unauthorized);
+                }
+
+                var result = await authService.ChangePasswordAsync(userId, request);
+                if (result == ChangePasswordResult.UserNotFound)
+                {
+                    return Results.NotFound(ApiErrors.UserNotFound);
+                }
+
+                if (result == ChangePasswordResult.WrongCurrentPassword)
+                {
+                    return Results.BadRequest(ApiErrors.CurrentPasswordIncorrect);
+                }
+
+                return Results.NoContent();
+            })
+            .RequireAuthorization()
+            .RequireRateLimiting("login");
+
+        app.MapPost("/api/auth/refresh", async (RefreshTokenRequest request, AuthService authService) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                return Results.BadRequest(ApiErrors.RefreshTokenRequired);
+            }
+
+            var loginResponse = await authService.RefreshAsync(request.RefreshToken);
+            if (loginResponse is null)
+            {
+                return Results.Json(ApiErrors.InvalidRefreshToken, statusCode: StatusCodes.Status401Unauthorized);
+            }
+
+            return Results.Ok(loginResponse);
+        });
+
         app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
             {
                 var id = user.FindFirst(ClaimTypes.NameIdentifier);
                 var name = user.FindFirst(ClaimTypes.Name);
                 var email = user.FindFirst(ClaimTypes.Email);
+                var role = user.FindFirst(ClaimTypes.Role);
 
                 return Results.Ok(new
                 {
                     Id = id?.Value,
                     Name = name?.Value,
-                    Email = email?.Value
+                    Email = email?.Value,
+                    Role = role?.Value
                 });
             })
             .RequireAuthorization();
@@ -106,6 +154,36 @@ public static class EndpointsAuth
         if (request.Password.Length < 6)
         {
             return ApiErrors.PasswordTooShort;
+        }
+
+        return null;
+    }
+
+    private static ErrorResponse? ValidateChangePassword(ChangePasswordRequest request)
+    {
+        if (string.IsNullOrEmpty(request.CurrentPassword))
+        {
+            return ApiErrors.CurrentPasswordRequired;
+        }
+
+        if (string.IsNullOrEmpty(request.NewPassword))
+        {
+            return ApiErrors.PasswordRequired;
+        }
+
+        if (request.NewPassword.Length < 6)
+        {
+            return ApiErrors.PasswordTooShort;
+        }
+
+        if (request.NewPassword != request.ConfirmationPassword)
+        {
+            return ApiErrors.PasswordsDoNotMatch;
+        }
+
+        if (request.NewPassword == request.CurrentPassword)
+        {
+            return ApiErrors.NewPasswordSameAsCurrent;
         }
 
         return null;

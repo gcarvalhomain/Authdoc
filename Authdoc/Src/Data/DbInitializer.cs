@@ -11,7 +11,14 @@ public static class DbInitializer
 {
     public static async Task SeedAdminAsync(ManagerDbContext context, IPasswordHasher<User> passwordHasher, string? adminPassword)
     {
-        await context.Database.MigrateAsync();
+        if (context.Database.IsRelational())
+        {
+            await context.Database.MigrateAsync();
+        }
+        else
+        {
+            await context.Database.EnsureCreatedAsync();
+        }
         
         bool hasAdmin = await context.Users.AnyAsync(u => u.Role == UserRole.Admin);
         

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Authdoc.Application.DTOs;
@@ -74,16 +75,114 @@ public class AuthService
         {
             return null;
         }
-        var result = _passwordHasher.VerifyHashedPassword(user, user.Password, request.Password);                                                                                                                                                                                                            
-                                                                                                                                                                                                                                                                                                                       
-        if (result == PasswordVerificationResult.Failed)                                                                                                                                                                                                                                                                     
-        {                                                                                                                                                                                                                                                                                                                    
-            return null;                                                                                                                                                                                                                                                                                                     
-        }    
-        return GenerateJwtToken(user);
+
+        var result = _passwordHasher.VerifyHashedPassword(user, user.Password, request.Password);
+        if (result == PasswordVerificationResult.Failed)
+        {
+            return null;
+        }
+
+        return await CreateSessionAsync(user);
     }
 
-    private LoginResponse GenerateJwtToken(User user)
+    public async Task<LoginResponse?> RefreshAsync(string refreshToken)
+    {
+        var tokenHash = HashToken(refreshToken);
+        var storedToken = await _context.RefreshTokens
+            .Include(token => token.User)
+            .FirstOrDefaultAsync(token => token.TokenHash == tokenHash);
+
+        if (storedToken is null || !storedToken.IsActive(DateTime.UtcNow))
+        {
+            return null;
+        }
+
+        storedToken.RevokedAt = DateTime.UtcNow;
+
+        return await CreateSessionAsync(storedToken.User);
+    }
+
+    public async Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == userId);
+        if (user is null)
+        {
+            return ChangePasswordResult.UserNotFound;
+        }
+
+        var result = _passwordHasher.VerifyHashedPassword(user, user.Password, request.CurrentPassword);
+        if (result == PasswordVerificationResult.Failed)
+        {
+            return ChangePasswordResult.WrongCurrentPassword;
+        }
+
+        var now = DateTime.UtcNow;
+        user.Password = _passwordHasher.HashPassword(user, request.NewPassword);
+        user.UpdatedAt = now;
+
+        var activeTokens = await _context.RefreshTokens
+            .Where(token => token.UserId == userId && token.RevokedAt == null)
+            .ToListAsync();
+
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = now;
+        }
+
+        await _context.SaveChangesAsync();
+        return ChangePasswordResult.Success;
+    }
+
+    private async Task<LoginResponse> CreateSessionAsync(User user)
+    {
+        var refreshToken = GenerateRefreshToken();
+        var refreshExpirationInDays = _configuration.GetValue("Jwt:RefreshTokenExpirationInDays", 7);
+        var now = DateTime.UtcNow;
+
+        var storedToken = new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = HashToken(refreshToken),
+            CreatedAt = now,
+            ExpiresAt = now.AddDays(refreshExpirationInDays)
+        };
+
+        _context.RefreshTokens.Add(storedToken);
+        await _context.SaveChangesAsync();
+
+        var (accessToken, accessExpiresAt) = GenerateJwtToken(user);
+
+        return new LoginResponse
+        {
+            Token = accessToken,
+            ExpiresAt = accessExpiresAt,
+            RefreshToken = refreshToken,
+            RefreshTokenExpiresAt = storedToken.ExpiresAt,
+            User = new UserResponse
+            {
+                Id = user.Id,
+                Name = user.Name,
+                Email = user.Email,
+                Age = user.Age,
+                Gender = user.Gender,
+                Role = user.Role.ToString(),
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt
+            }
+        };
+    }
+
+    private static string GenerateRefreshToken()
+    {
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+    }
+
+    private static string HashToken(string token)
+    {
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+    }
+
+    private (string Token, DateTime ExpiresAt) GenerateJwtToken(User user)
     {
         var key = _configuration["Jwt:Key"];
         var issuer = _configuration["Jwt:Issuer"];
@@ -109,21 +208,14 @@ public class AuthService
             expires: expiresAt,
             signingCredentials:  credentials
         );
-        return new LoginResponse
-        {
-            Token = new JwtSecurityTokenHandler().WriteToken(token),
-            ExpiresAt = expiresAt,
-            User = new UserResponse
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Email = user.Email,
-                Age = user.Age,
-                Gender = user.Gender,
-                Role = user.Role.ToString(),
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt
-            }
-        };
+
+        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
     }
+}
+
+public enum ChangePasswordResult
+{
+    Success,
+    UserNotFound,
+    WrongCurrentPassword
 }

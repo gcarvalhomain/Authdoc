@@ -25,6 +25,31 @@ public class UserService
             return null;
         }
 
+        return ToResponse(user);
+    }
+
+    public async Task<PagedResponse<UserResponse>> ListAsync(int page, int pageSize)
+    {
+        var totalCount = await _context.Users.CountAsync();
+
+        var users = await _context.Users
+            .OrderBy(user => user.CreatedAt)
+            .ThenBy(user => user.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return new PagedResponse<UserResponse>
+        {
+            Items = users.Select(ToResponse).ToList(),
+            Page = page,
+            PageSize = pageSize,
+            TotalCount = totalCount
+        };
+    }
+
+    private static UserResponse ToResponse(User user)
+    {
         return new UserResponse
         {
             Id = user.Id,

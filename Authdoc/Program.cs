@@ -68,6 +68,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole("Admin"));
 });
 
+var loginPermitLimit = builder.Configuration.GetValue("RateLimiting:LoginPermitLimit", 5);
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -77,7 +79,7 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
+                PermitLimit = loginPermitLimit,
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
@@ -120,3 +122,5 @@ app.MapAuthEndpoints();
 app.MapUserEndpoints();
 
 app.Run();
+
+public partial class Program { }
