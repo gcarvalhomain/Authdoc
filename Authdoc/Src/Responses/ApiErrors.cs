@@ -13,13 +13,15 @@ public static class ApiErrors
     public static readonly ErrorResponse PasswordsDoNotMatch = new() { Code = "PASSWORDS_DO_NOT_MATCH", Message = "Passwords do not match" };
     public static readonly ErrorResponse RoleInvalid = new() { Code = "ROLE_INVALID", Message = "Role must be Admin or User" };
     public static readonly ErrorResponse CannotChangeOwnRole = new() { Code = "CANNOT_CHANGE_OWN_ROLE", Message = "You cannot change your own role" };
+    public static readonly ErrorResponse RefreshTokenRequired = new() { Code = "REFRESH_TOKEN_REQUIRED", Message = "Refresh token is required" };
     public static readonly ErrorResponse PageInvalid = new() { Code = "PAGE_INVALID", Message = "Page must be 1 or greater" };
     public static readonly ErrorResponse PageSizeInvalid = new() { Code = "PAGE_SIZE_INVALID", Message = "Page size must be between 1 and 100" };
     public static readonly ErrorResponse CannotDeleteOwnUser = new() { Code = "CANNOT_DELETE_OWN_USER", Message = "You cannot delete your own user" };
 
     // Authentication (401)
     public static readonly ErrorResponse InvalidCredentials = new() { Code = "INVALID_CREDENTIALS", Message = "Email or password is incorrect" };
-    public static readonly ErrorResponse Unauthorized = new() { Code = "UNAUTHORIZED", Message = "A valid token is required" };
+    public static readonly ErrorResponse InvalidRefreshToken = new() { Code = "INVALID_REFRESH_TOKEN", Message = "Refresh token is invalid, expired or revoked" };
+    public static readonly ErrorResponse Unauthorized =new() { Code = "UNAUTHORIZED", Message = "A valid token is required" };
 
     // Authorization (403)
     public static readonly ErrorResponse Forbidden = new() { Code = "FORBIDDEN", Message = "You do not have permission to access this resource" };

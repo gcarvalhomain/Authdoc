@@ -55,6 +55,22 @@ public static class EndpointsAuth
         })
         .RequireRateLimiting("login");
 
+        app.MapPost("/api/auth/refresh", async (RefreshTokenRequest request, AuthService authService) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                return Results.BadRequest(ApiErrors.RefreshTokenRequired);
+            }
+
+            var loginResponse = await authService.RefreshAsync(request.RefreshToken);
+            if (loginResponse is null)
+            {
+                return Results.Json(ApiErrors.InvalidRefreshToken, statusCode: StatusCodes.Status401Unauthorized);
+            }
+
+            return Results.Ok(loginResponse);
+        });
+
         app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
             {
                 var id = user.FindFirst(ClaimTypes.NameIdentifier);
