@@ -50,7 +50,7 @@ public class AuthService
             UpdatedAt = now
         };
         
-        user.Password = _passwordHasher.HashPassword(user, request.Password);
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
         
@@ -76,7 +76,7 @@ public class AuthService
             return null;
         }
 
-        var result = _passwordHasher.VerifyHashedPassword(user, user.Password, request.Password);
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
         if (result == PasswordVerificationResult.Failed)
         {
             return null;
@@ -110,14 +110,14 @@ public class AuthService
             return ChangePasswordResult.UserNotFound;
         }
 
-        var result = _passwordHasher.VerifyHashedPassword(user, user.Password, request.CurrentPassword);
+        var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
         if (result == PasswordVerificationResult.Failed)
         {
             return ChangePasswordResult.WrongCurrentPassword;
         }
 
         var now = DateTime.UtcNow;
-        user.Password = _passwordHasher.HashPassword(user, request.NewPassword);
+        user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
         user.UpdatedAt = now;
 
         var activeTokens = await _context.RefreshTokens

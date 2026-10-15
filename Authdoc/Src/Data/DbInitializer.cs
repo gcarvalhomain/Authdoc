@@ -51,7 +51,7 @@ public static class DbInitializer
                 UpdatedAt = now
             };
 
-            initialAdmin.Password = passwordHasher.HashPassword(initialAdmin, adminPassword);
+            initialAdmin.PasswordHash = passwordHasher.HashPassword(initialAdmin, adminPassword);
 
             await context.Users.AddAsync(initialAdmin);
         }
