@@ -15,7 +15,7 @@ public static class EndpointsAuth
     {
         app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
-                request.Email = EmailValidator.Normalize(request.Email);
+                
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)
                 {
@@ -38,7 +38,6 @@ public static class EndpointsAuth
             .RequireAuthorization("Admin");
         app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
         {
-            request.Email = EmailValidator.Normalize(request.Email);
             var validationError = ValidateLogin(request);
             if (validationError is not null)
             {

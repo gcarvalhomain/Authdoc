@@ -5,43 +5,26 @@ namespace Authdoc.Tests;
 public class EmailValidatorTests
 {
     [Fact]
-    public void IsValid_WithAllowedDomain_ReturnsTrue()
+    public void IsValid_WithValidEmail_ReturnsTrue()
     {
-        // Arrange
         var email = "gabriel@gmail.com";
         
-        // Act
         var result = EmailValidator.IsValid(email);
         
-        // Assert
         Assert.True(result);
     }
 
-    [Fact]
-    public void IsValid_WithNotAllowedDomain_ReturnsFalse()
-    {
-        var email = "gabriel@yahoo.com";
-        
-        var result = EmailValidator.IsValid(email);
-        
-        Assert.False(result);
-    }
+    [Theory]
+    [InlineData("gabriel@gmail..com")]
+    [InlineData("gabriel@gmail.com")]
+    [InlineData("gabriel@empresa.com.br")]
+    [InlineData("gabriel+teste@empresa.com")]
+    [InlineData("gabriel.carvalho@empresa.pt")]
+    [InlineData("g_c-1@sub.dominio.org")]
 
-    [Fact]
-    public void IsValid_WithoutAt_ReturnsFalse()
+    public void IsValid_WithInvalidEmail_ReturnsFalse(string email)
     {
-        var email = "gabrielgmail.com";
-        
         var result = EmailValidator.IsValid(email);
-        
         Assert.False(result);
-    }
-
-    [Fact]
-    public void Normalize_WithSpacesAndUppercase_ReturnsCleanEmail()
-    {
-        var email = " Gabrielgmail.com ";
-        var result = EmailValidator.Normalize(email);
-        Assert.Equal("gabrielgmail.com", result);
     }
 }

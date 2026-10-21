@@ -47,7 +47,6 @@ public static class EndpointsUser
             .RequireAuthorization("Admin");
         app.MapPut("/api/users/{id}", async (Guid id, UpdateUserRequest request, UserService userService) =>
             {
-                request.Email = EmailValidator.Normalize(request.Email);
                 var validationError = ValidateUpdate(request);
                 if (validationError is not null)
                 {

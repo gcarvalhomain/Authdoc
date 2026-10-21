@@ -5,38 +5,44 @@ namespace Authdoc.Validators;
 
 public static class EmailValidator
 {
+    
+    private const int MaxLength = 254;
+
+    
     private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
-
-    private static readonly string[] AllowedDomains = ["gmail.com", "outlook.com", "hotmail.com", "live.com"];
-
-    public static string Normalize(string? email)
-    {
-        return email?.Trim().ToLowerInvariant() ?? string.Empty;
-    }
+    
 
     public static bool IsValid(string email)
     {
-        if (!HasValidFormat(email))
+        if (string.IsNullOrWhiteSpace(email))
             return false;
-        return IsDomainAllowed(email);
-    }
+        
+        email = email.Trim();
 
-    private static bool HasValidFormat(string email)
-    {
-        try
-        {
-            var address = new MailAddress(email);
-            return address.Address == email && EmailRegex.IsMatch(email);
-        }
-        catch
+        if (email.Length > MaxLength)
         {
             return false;
         }
+        
+        if (email.Contains(".."))
+        {
+            return false;
+        }
+        
+        // Layer 1: quick format filter
+        if (!EmailRegex.IsMatch(email))
+        {
+            return false;
+        }
+        
+        // Layer 2: the .NET analyzer checks the truth rules
+        if (!MailAddress.TryCreate(email, out var address))
+        {
+            return false;
+        }
+        
+        // Layer 3: what he understood must be the same as what was typed
+        return address.Address == email;
     }
 
-    private static bool IsDomainAllowed(string email)
-    {
-        string domain = email.Split('@')[1].ToLower();
-        return AllowedDomains.Contains(domain);
-    }
 }
