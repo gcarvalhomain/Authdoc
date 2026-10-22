@@ -262,6 +262,7 @@ Content-Type: application/json
 - Um admin não pode alterar o próprio papel, e o último admin do sistema não pode ser rebaixado
 - Um admin não pode excluir o próprio usuário, e o último admin do sistema não pode ser excluído
 - A mudança de papel só vale no token após um novo login, pois o papel fica gravado no JWT
+- Tratamento Global de Erros: Gerenciamento centralizado de exceções com `IExceptionHandler` do .NET para interceptar e logar falhas inesperadas de forma segura.
 
 ### Formato de erro
 
