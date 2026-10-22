@@ -250,15 +250,13 @@ Content-Type: application/json
 
 ### Regras de negócio
 
-- E-mail válido, de um domínio permitido (`gmail.com`, `outlook.com`, `hotmail.com`, `live.com`) e único na base, validado no cadastro e na atualização
+- E-mail válido, de um domínio permitido e único na base, validado no cadastro e na atualização
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
-- Idade mínima de 18 anos, validada no cadastro e na atualização
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
 - Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
 - Trocar a senha revoga todos os refresh tokens do usuário
 - Uma mudança de papel passa a valer no próximo refresh, pois o novo token é montado a partir do usuário atual
-- Gênero informado no cadastro e imutável depois
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
 - Papel alterado apenas por `PATCH /api/users/{id}/role`, com corpo `{ "role": "Admin" }` ou `{ "role": "User" }`
 - Um admin não pode alterar o próprio papel, e o último admin do sistema não pode ser rebaixado
