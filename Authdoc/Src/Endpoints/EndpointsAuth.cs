@@ -135,16 +135,6 @@ public static class EndpointsAuth
             return ApiErrors.NameRequired;
         }
 
-        if (string.IsNullOrWhiteSpace(request.Gender))
-        {
-            return ApiErrors.GenderRequired;
-        }
-
-        if (request.Age < 18)
-        {
-            return ApiErrors.AgeTooLow;
-        }
-
         if (string.IsNullOrEmpty(request.Password))
         {
             return ApiErrors.PasswordRequired;
