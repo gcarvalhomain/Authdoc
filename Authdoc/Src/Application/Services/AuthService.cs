@@ -44,8 +44,6 @@ public class AuthService
         {
             Name = request.Name,
             Email = request.Email,
-            Age = request.Age,
-            Gender = request.Gender,
             CreatedAt = now,
             UpdatedAt = now
         };
