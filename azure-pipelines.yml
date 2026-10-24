@@ -1,17 +1,47 @@
-# ASP.NET Core
-# Build and test ASP.NET Core projects targeting .NET Core.
-# Add steps that run tests, create a NuGet package, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
-
 trigger:
 - main
 
 pool:
   vmImage: ubuntu-latest
 
-variables:
-  buildConfiguration: 'Release'
-
 steps:
-- script: dotnet build --configuration $(buildConfiguration)
-  displayName: 'dotnet build $(buildConfiguration)'
+- task: DotNetCoreCLI@2
+  displayName: 'Restore'
+  inputs:
+    azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
+    command: 'restore'
+    projects: '**/*.csproj'
+- task: DotNetCoreCLI@2
+  displayName: 'Build on'
+  inputs:
+    azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
+    command: 'build'
+    projects: '**/*.csproj'
+    arguments: '--configuration Release'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
+    command: 'test'
+    projects: 'projects: ''**/*Tests.csproj'''
+
+- task: DotNetCoreCLI@2
+  inputs:
+    azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
+    command: 'publish'
+    publishWebProjects: true
+    arguments: '''--configuration Release --output $(Build.ArtifactStagingDirectory)'''
+
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: 'drop'
+    publishLocation: 'Container'
+
+- task: AzureRmWebAppDeployment@5
+  inputs:
+    ConnectionType: 'AzureRM'
+    azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
+    appType: 'webApp'
+    WebAppName: 
+    packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
