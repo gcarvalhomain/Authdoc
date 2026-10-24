@@ -17,7 +17,7 @@ steps:
     azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
     command: 'build'
     projects: '**/*.csproj'
-    arguments: '--configuration Release'
+    arguments: '''--configuration Release --output $(Build.ArtifactStagingDirectory)'''
 
 - task: DotNetCoreCLI@2
   inputs:
