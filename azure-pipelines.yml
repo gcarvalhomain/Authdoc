@@ -43,5 +43,5 @@ steps:
     ConnectionType: 'AzureRM'
     azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
     appType: 'webApp'
-    WebAppName: 
+    WebAppName: authdoc-gabriel
     packageForLinux: '$(System.DefaultWorkingDirectory)/**/*.zip'
