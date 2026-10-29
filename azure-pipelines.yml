@@ -43,8 +43,10 @@ steps:
     git config --global user.name "Azure Pipelines Bot"
 
     echo "Adding GitHub remote repository..."
-    git remote add github https://$(GITHUB_PAT)@github.com/gcarvalhomain/Authdoc.git
-    
+    git remote add github https://${GITHUB_PAT}@github.com/gcarvalhomain/Authdoc.git
+
     echo "Pushing updates to GitHub..."
     git push github HEAD:main --force
   displayName: 'Mirror to GitHub'
+  env:
+    GITHUB_PAT: $(GITHUB_PAT)
