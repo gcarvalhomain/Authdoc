@@ -1,6 +1,21 @@
 @Authdoc_HostAddress = http://localhost:5297
+@Token = <token retornado pelo login>
 
-GET {{Authdoc_HostAddress}}/weatherforecast/
-Accept: application/json
+### Login
+POST {{Authdoc_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@system.com",
+  "password": "<SeedData:AdminPassword>"
+}
+
+### Identidade do token
+GET {{Authdoc_HostAddress}}/api/auth/me
+Authorization: Bearer {{Token}}
+
+### Listar usuarios
+GET {{Authdoc_HostAddress}}/api/users?page=1&pageSize=10
+Authorization: Bearer {{Token}}
 
 ###
