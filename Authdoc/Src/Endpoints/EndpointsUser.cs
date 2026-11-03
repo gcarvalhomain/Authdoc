@@ -61,10 +61,15 @@ public static class EndpointsUser
                     return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
 
-                var update = await userService.UpdateAsync(id, request);
-                if (!update)
+                var result = await userService.UpdateAsync(id, request);
+                if (result == UpdateUserResult.UserNotFound)
                 {
                     return Results.NotFound(ApiErrors.UserNotFound);
+                }
+
+                if (result == UpdateUserResult.EmailAlreadyInUse)
+                {
+                    return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
 
                 var user = await userService.GetByIdAsync(id);

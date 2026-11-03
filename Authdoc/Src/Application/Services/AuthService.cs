@@ -50,8 +50,16 @@ public class AuthService
         
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            return null;
+        }
+
 
         return new UserResponse
         {

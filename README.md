@@ -375,7 +375,6 @@ A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento
 |---|---|---|
 | O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes`. O refresh já devolve o papel novo, mas o token antigo segue válido até vencer | Reduzir `Jwt:ExpirationInMinutes` (o refresh evita logins repetidos) ou verificar um *security stamp* a cada requisição |
 | O login responde mais rápido quando o e-mail não existe | Um atacante pode medir o tempo e descobrir quais e-mails estão cadastrados | Verificar um hash falso mesmo quando o usuário não existe |
-| A checagem de e-mail duplicado não é atômica | Dois cadastros simultâneos com o mesmo e-mail: o índice único protege o banco, mas a API responde `500` em vez de `409` | Tratar `DbUpdateException` de violação de índice único |
 | A regra do último admin não é atômica | Duas requisições simultâneas podem rebaixar ou excluir os dois últimos admins | Transação com isolamento adequado ou trava no banco |
 | O rate limiting fica na memória e é por IP | Zera quando a API reinicia, não é compartilhado entre instâncias e, atrás de um proxy, todos podem parecer o mesmo IP | Rate limiting distribuído (ex.: Redis) e configurar `ForwardedHeaders` |
 | Os testes de integração usam banco em memória | O índice único de e-mail não é verificado pelo banco nos testes | Testes com SQL Server real (ex.: Testcontainers) |
