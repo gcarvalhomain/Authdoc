@@ -305,7 +305,7 @@ As respostas de erro da API têm o mesmo formato, com um `code` estável (para o
 
 | Status | Códigos |
 |---|---|
-| `400` | `NAME_REQUIRED`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
+| `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
 | `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
 | `404` | `USER_NOT_FOUND` |
@@ -375,7 +375,6 @@ A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento
 |---|---|---|
 | O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes`. O refresh já devolve o papel novo, mas o token antigo segue válido até vencer | Reduzir `Jwt:ExpirationInMinutes` (o refresh evita logins repetidos) ou verificar um *security stamp* a cada requisição |
 | O login responde mais rápido quando o e-mail não existe | Um atacante pode medir o tempo e descobrir quais e-mails estão cadastrados | Verificar um hash falso mesmo quando o usuário não existe |
-| JSON malformado retorna `500` | Um erro do cliente aparece como falha do servidor e polui os logs | Tratar `BadHttpRequestException` no `GlobalExceptionHandler` e responder `400` |
 | A checagem de e-mail duplicado não é atômica | Dois cadastros simultâneos com o mesmo e-mail: o índice único protege o banco, mas a API responde `500` em vez de `409` | Tratar `DbUpdateException` de violação de índice único |
 | A regra do último admin não é atômica | Duas requisições simultâneas podem rebaixar ou excluir os dois últimos admins | Transação com isolamento adequado ou trava no banco |
 | O rate limiting fica na memória e é por IP | Zera quando a API reinicia, não é compartilhado entre instâncias e, atrás de um proxy, todos podem parecer o mesmo IP | Rate limiting distribuído (ex.: Redis) e configurar `ForwardedHeaders` |

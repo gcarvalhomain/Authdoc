@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using Authdoc.Responses;
 
 namespace Authdoc.Tests.Integration;
@@ -12,6 +13,24 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     public AuthEndpointsTests(AuthdocApiFactory factory)
     {
         _factory = factory;
+    }
+
+    [Theory]
+    [InlineData("{\"email\":")]
+    [InlineData("{\"email\":\"admin@system.com\"}")]
+    public async Task Login_WithUnreadableBody_Returns400InvalidRequest(string body)
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+        using var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+        // Act
+        var response = await client.PostAsync("/api/auth/login", content);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("INVALID_REQUEST", error!.Code);
     }
 
     [Fact]

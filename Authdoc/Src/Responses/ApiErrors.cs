@@ -3,6 +3,7 @@ namespace Authdoc.Responses;
 public static class ApiErrors
 {
     // Validation (400)
+    public static readonly ErrorResponse InvalidRequest = new() { Code = "INVALID_REQUEST", Message = "The request could not be read. Check its body and parameters" };
     public static readonly ErrorResponse NameRequired = new() { Code = "NAME_REQUIRED", Message = "Name is required" };
     public static readonly ErrorResponse EmailRequired = new() { Code = "EMAIL_REQUIRED", Message = "Email is required" };
     public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid or its domain is not allowed" };
