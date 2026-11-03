@@ -18,6 +18,13 @@ steps:
     arguments: --configuration Release
 
 - task: DotNetCoreCLI@2
+  displayName: 'Test'
+  inputs:
+    command: 'test'
+    projects: '**/*.Tests.csproj'
+    arguments: --configuration Release --no-build
+
+- task: DotNetCoreCLI@2
   inputs:
     command: 'publish'
     publishWebProjects: true

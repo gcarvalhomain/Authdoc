@@ -27,7 +27,7 @@ Por isso o projeto começa pela camada de identidade. Autenticação, papéis (r
 | Tratamento global de exceções | ✅ Implementado |
 | Bootstrap automático (migrations + admin inicial) | ✅ Implementado |
 | Testes unitários e de integração | ✅ Implementado |
-| Pipeline de CI/CD | 🟡 Build e deploy prontos; faltam os testes na pipeline |
+| Pipeline de CI/CD (build, testes e deploy) | ✅ Implementado |
 | **Módulo de documentos** | 🚧 Próxima etapa |
 | Vínculo documento ↔ usuário com autorização por propriedade | 🚧 Próxima etapa |
 
@@ -205,8 +205,9 @@ A pipeline fica em `azure-pipelines.yml` e roda a cada alteração na branch `ma
 
 1. Restaura as dependências
 2. Compila em `Release`
-3. Publica a API e gera o artefato `drop`
-4. Faz o deploy no Azure App Service
+3. Executa os testes; se algum falhar, o deploy não acontece
+4. Publica a API e gera o artefato `drop`
+5. Faz o deploy no Azure App Service
 
 ---
 
@@ -354,9 +355,8 @@ erDiagram
 - [ ] Normalizar o e-mail antes de validar, buscar e salvar
 - [ ] Limites de tamanho nas colunas `Name` e `PasswordHash`
 - [ ] Validação centralizada (FluentValidation)
-- [ ] Executar os testes na pipeline, antes do deploy
 - [ ] Docker Compose (API + SQL Server)
-- [x] Pipeline de build e deploy
+- [x] Pipeline de build, testes e deploy
 - [x] Índice único de e-mail
 - [x] Tratamento global de exceções
 - [x] Refresh token e revogação de sessão
