@@ -15,6 +15,21 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task Register_WithUntrimmedUppercaseEmail_StoresNormalizedAndAllowsLogin()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+
+        // Act
+        var user = await adminClient.RegisterUserAsync("  Normalized@Gmail.com ");
+        var login = await _factory.CreateClient().LoginAsync(" NORMALIZED@gmail.com", "senha123");
+
+        // Assert
+        Assert.Equal("normalized@gmail.com", user.Email);
+        Assert.Equal(user.Id, login.User.Id);
+    }
+
+    [Fact]
     public async Task Login_WithValidCredentials_ReturnsToken()
     {
         // Arrange

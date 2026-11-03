@@ -283,6 +283,7 @@ Content-Type: application/json
 ### Regras de negócio
 
 - E-mail válido, de qualquer domínio e único na base, validado no cadastro e na atualização
+- E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
 - Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
@@ -350,7 +351,6 @@ erDiagram
 ### Evolução da base
 
 - [ ] Autorização por recurso (`IAuthorizationHandler`) para documentos
-- [ ] Normalizar o e-mail antes de validar, buscar e salvar
 - [ ] Limites de tamanho nas colunas `Name` e `PasswordHash`
 - [ ] Validação centralizada (FluentValidation)
 - [ ] Docker Compose (API + SQL Server)
@@ -375,7 +375,6 @@ A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento
 |---|---|---|
 | O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes`. O refresh já devolve o papel novo, mas o token antigo segue válido até vencer | Reduzir `Jwt:ExpirationInMinutes` (o refresh evita logins repetidos) ou verificar um *security stamp* a cada requisição |
 | O login responde mais rápido quando o e-mail não existe | Um atacante pode medir o tempo e descobrir quais e-mails estão cadastrados | Verificar um hash falso mesmo quando o usuário não existe |
-| O e-mail não é normalizado | Espaços nas pontas passam na validação e são gravados, o que permite duplicar um e-mail e dificulta o login | Aplicar `Trim` e minúsculas antes de validar, buscar e salvar |
 | JSON malformado retorna `500` | Um erro do cliente aparece como falha do servidor e polui os logs | Tratar `BadHttpRequestException` no `GlobalExceptionHandler` e responder `400` |
 | A checagem de e-mail duplicado não é atômica | Dois cadastros simultâneos com o mesmo e-mail: o índice único protege o banco, mas a API responde `500` em vez de `409` | Tratar `DbUpdateException` de violação de índice único |
 | A regra do último admin não é atômica | Duas requisições simultâneas podem rebaixar ou excluir os dois últimos admins | Transação com isolamento adequado ou trava no banco |

@@ -12,12 +12,15 @@ public static class EmailValidator
     private static readonly Regex EmailRegex = new(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     
 
+    public static string Normalize(string? email)
+    {
+        return email?.Trim().ToLowerInvariant() ?? string.Empty;
+    }
+
     public static bool IsValid(string email)
     {
         if (string.IsNullOrWhiteSpace(email))
             return false;
-        
-        email = email.Trim();
 
         if (email.Length > MaxLength)
         {
