@@ -136,11 +136,6 @@ public static class EndpointsUser
             return ApiErrors.EmailInvalid;
         }
 
-        if (request.Age < 18)
-        {
-            return ApiErrors.AgeTooLow;
-        }
-
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return ApiErrors.NameRequired;

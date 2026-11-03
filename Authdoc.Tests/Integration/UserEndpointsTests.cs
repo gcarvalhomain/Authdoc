@@ -37,7 +37,7 @@ public class UserEndpointsTests : IClassFixture<AuthdocApiFactory>
 
         // Act
         var response = await adminClient.PutAsJsonAsync($"/api/users/{user.Id}",
-            new { name = "Test User", age = 25, email = "abc" });
+            new { name = "Test User", email = "abc" });
 
         // Assert
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

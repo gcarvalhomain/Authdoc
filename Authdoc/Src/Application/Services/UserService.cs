@@ -55,8 +55,6 @@ public class UserService
             Id = user.Id,
             Name = user.Name,
             Email = user.Email,
-            Gender = user.Gender,
-            Age = user.Age,
             Role = user.Role.ToString(),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
@@ -73,7 +71,6 @@ public class UserService
         }
 
         user.Name = request.Name;
-        user.Age = request.Age;
         user.Email = request.Email;
         user.UpdatedAt = DateTime.UtcNow;
 

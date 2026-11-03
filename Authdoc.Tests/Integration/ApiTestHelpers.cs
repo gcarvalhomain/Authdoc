@@ -28,8 +28,6 @@ public static class ApiTestHelpers
         var response = await adminClient.PostAsJsonAsync("/api/auth/register", new
         {
             name = "Test User",
-            age = 25,
-            gender = "Female",
             email,
             password,
             confirmationPassword = password

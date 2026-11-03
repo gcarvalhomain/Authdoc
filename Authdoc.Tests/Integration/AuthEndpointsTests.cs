@@ -86,8 +86,6 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
         var response = await adminClient.PostAsJsonAsync("/api/auth/register", new
         {
             name = "Other User",
-            age = 30,
-            gender = "Male",
             email = "duplicated@gmail.com",
             password = "senha123",
             confirmationPassword = "senha123"

@@ -276,7 +276,7 @@ Content-Type: application/json
 |---|---|---|---|
 | `GET` | `/api/users?page=1&pageSize=10` | Admin | Lista usuários com paginação (`pageSize` de 1 a 100) |
 | `GET` | `/api/users/{id}` | Admin | Consulta um usuário |
-| `PUT` | `/api/users/{id}` | Admin | Atualiza nome, idade e e-mail |
+| `PUT` | `/api/users/{id}` | Admin | Atualiza nome e e-mail |
 | `PATCH` | `/api/users/{id}/role` | Admin | Altera o papel do usuário (`Admin` ou `User`) |
 | `DELETE` | `/api/users/{id}` | Admin | Remove um usuário |
 
@@ -284,7 +284,6 @@ Content-Type: application/json
 
 - E-mail válido, de qualquer domínio e único na base, validado no cadastro e na atualização
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
-- Idade mínima de 18 anos na atualização de usuário
 - Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
 - Trocar a senha revoga todos os refresh tokens do usuário
@@ -305,7 +304,7 @@ As respostas de erro da API têm o mesmo formato, com um `code` estável (para o
 
 | Status | Códigos |
 |---|---|
-| `400` | `NAME_REQUIRED`, `AGE_TOO_LOW`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
+| `400` | `NAME_REQUIRED`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
 | `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
 | `404` | `USER_NOT_FOUND` |
@@ -351,7 +350,6 @@ erDiagram
 ### Evolução da base
 
 - [ ] Autorização por recurso (`IAuthorizationHandler`) para documentos
-- [ ] Concluir a remoção de `Age` e `Gender` do usuário
 - [ ] Normalizar o e-mail antes de validar, buscar e salvar
 - [ ] Limites de tamanho nas colunas `Name` e `PasswordHash`
 - [ ] Validação centralizada (FluentValidation)

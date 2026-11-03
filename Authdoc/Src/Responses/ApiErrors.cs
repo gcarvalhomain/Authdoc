@@ -4,8 +4,6 @@ public static class ApiErrors
 {
     // Validation (400)
     public static readonly ErrorResponse NameRequired = new() { Code = "NAME_REQUIRED", Message = "Name is required" };
-    public static readonly ErrorResponse GenderRequired = new() { Code = "GENDER_REQUIRED", Message = "Gender is required" };
-    public static readonly ErrorResponse AgeTooLow = new() { Code = "AGE_TOO_LOW", Message = "Age must be 18 years of age or older" };
     public static readonly ErrorResponse EmailRequired = new() { Code = "EMAIL_REQUIRED", Message = "Email is required" };
     public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid or its domain is not allowed" };
     public static readonly ErrorResponse PasswordRequired = new() { Code = "PASSWORD_REQUIRED", Message = "Password is required" };

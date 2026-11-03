@@ -58,8 +58,6 @@ public class AuthService
             Id = user.Id,
             Email = user.Email,
             Name = user.Name,
-            Age = user.Age,
-            Gender =  user.Gender,
             Role = user.Role.ToString(),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
@@ -161,8 +159,6 @@ public class AuthService
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
-                Age = user.Age,
-                Gender = user.Gender,
                 Role = user.Role.ToString(),
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
