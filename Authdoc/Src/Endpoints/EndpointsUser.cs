@@ -148,6 +148,11 @@ public static class EndpointsUser
             return ApiErrors.NameRequired;
         }
 
+        if (request.Name.Length > User.NameMaxLength)
+        {
+            return ApiErrors.NameTooLong;
+        }
+
         return null;
     }
 

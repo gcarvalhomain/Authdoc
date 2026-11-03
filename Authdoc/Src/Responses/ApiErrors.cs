@@ -5,6 +5,7 @@ public static class ApiErrors
     // Validation (400)
     public static readonly ErrorResponse InvalidRequest = new() { Code = "INVALID_REQUEST", Message = "The request could not be read. Check its body and parameters" };
     public static readonly ErrorResponse NameRequired = new() { Code = "NAME_REQUIRED", Message = "Name is required" };
+    public static readonly ErrorResponse NameTooLong = new() { Code = "NAME_TOO_LONG", Message = "Name must have at most 100 characters" };
     public static readonly ErrorResponse EmailRequired = new() { Code = "EMAIL_REQUIRED", Message = "Email is required" };
     public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid" };
     public static readonly ErrorResponse PasswordRequired = new() { Code = "PASSWORD_REQUIRED", Message = "Password is required" };

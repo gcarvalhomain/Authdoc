@@ -14,6 +14,23 @@ public class UserEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task UpdateUser_WithTooLongName_Returns400NameTooLong()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+        var user = await adminClient.RegisterUserAsync("longname@gmail.com");
+
+        // Act
+        var response = await adminClient.PutAsJsonAsync($"/api/users/{user.Id}",
+            new { name = new string('a', 101), email = "longname@gmail.com" });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("NAME_TOO_LONG", error!.Code);
+    }
+
+    [Fact]
     public async Task GetUser_WhenUserDoesNotExist_Returns404UserNotFound()
     {
         // Arrange

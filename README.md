@@ -284,6 +284,7 @@ Content-Type: application/json
 
 - E-mail válido, de qualquer domínio e único na base, validado no cadastro e na atualização
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
+- Nome obrigatório, com no máximo 100 caracteres
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
 - Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
@@ -305,7 +306,7 @@ As respostas de erro da API têm o mesmo formato, com um `code` estável (para o
 
 | Status | Códigos |
 |---|---|
-| `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
+| `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `NAME_TOO_LONG`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
 | `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
 | `404` | `USER_NOT_FOUND` |
@@ -351,11 +352,10 @@ erDiagram
 ### Evolução da base
 
 - [ ] Autorização por recurso (`IAuthorizationHandler`) para documentos
-- [ ] Limites de tamanho nas colunas `Name` e `PasswordHash`
 - [ ] Validação centralizada (FluentValidation)
 - [ ] Docker Compose (API + SQL Server)
 - [x] Pipeline de build, testes e deploy
-- [x] Índice único de e-mail
+- [x] Índice único de e-mail e limites de tamanho em `Email` e `Name`
 - [x] Tratamento global de exceções
 - [x] Refresh token e revogação de sessão
 - [x] Rate limiting no login
