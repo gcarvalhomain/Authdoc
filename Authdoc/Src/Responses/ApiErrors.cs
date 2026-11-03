@@ -6,7 +6,7 @@ public static class ApiErrors
     public static readonly ErrorResponse InvalidRequest = new() { Code = "INVALID_REQUEST", Message = "The request could not be read. Check its body and parameters" };
     public static readonly ErrorResponse NameRequired = new() { Code = "NAME_REQUIRED", Message = "Name is required" };
     public static readonly ErrorResponse EmailRequired = new() { Code = "EMAIL_REQUIRED", Message = "Email is required" };
-    public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid or its domain is not allowed" };
+    public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid" };
     public static readonly ErrorResponse PasswordRequired = new() { Code = "PASSWORD_REQUIRED", Message = "Password is required" };
     public static readonly ErrorResponse PasswordTooShort = new() { Code = "PASSWORD_TOO_SHORT", Message = "Password must be at least 6 characters long" };
     public static readonly ErrorResponse PasswordsDoNotMatch = new() { Code = "PASSWORDS_DO_NOT_MATCH", Message = "Passwords do not match" };

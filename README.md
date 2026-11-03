@@ -300,7 +300,7 @@ Content-Type: application/json
 As respostas de erro da API têm o mesmo formato, com um `code` estável (para o cliente tratar) e uma `message` legível:
 
 ```json
-{ "code": "EMAIL_INVALID", "message": "Email is invalid or its domain is not allowed" }
+{ "code": "EMAIL_INVALID", "message": "Email is invalid" }
 ```
 
 | Status | Códigos |
