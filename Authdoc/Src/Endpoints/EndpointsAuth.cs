@@ -149,7 +149,7 @@ public static class EndpointsAuth
             return ApiErrors.PasswordRequired;
         }
 
-        if (request.Password.Length < 6)
+        if (request.Password.Length < User.PasswordMinLength)
         {
             return ApiErrors.PasswordTooShort;
         }
@@ -169,7 +169,7 @@ public static class EndpointsAuth
             return ApiErrors.PasswordRequired;
         }
 
-        if (request.NewPassword.Length < 6)
+        if (request.NewPassword.Length < User.PasswordMinLength)
         {
             return ApiErrors.PasswordTooShort;
         }
