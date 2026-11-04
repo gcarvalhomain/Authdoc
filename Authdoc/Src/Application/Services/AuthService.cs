@@ -20,20 +20,20 @@ namespace Authdoc.Application.Services;
 public class AuthService
 {
     private readonly ManagerDbContext _context;
-    private readonly IPasswordHasher<User>  _passwordHasher;
-    private readonly IConfiguration  _configuration;
+    private readonly IPasswordHasher<User> _passwordHasher;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(ManagerDbContext context, IPasswordHasher<User> passwordHasher,  IConfiguration configuration)
+    public AuthService(ManagerDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _configuration = configuration;
     }
-    
 
-    public async Task<UserResponse?> RegisterAsync(RegisterUserRequest  request)
+
+    public async Task<UserResponse?> RegisterAsync(RegisterUserRequest request)
     {
-        var emailExists = await _context.Users.AnyAsync(user => user.Email == request.Email );
+        var emailExists = await _context.Users.AnyAsync(user => user.Email == request.Email);
         if (emailExists)
         {
             return null;
@@ -47,7 +47,7 @@ public class AuthService
             CreatedAt = now,
             UpdatedAt = now
         };
-        
+
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         _context.Users.Add(user);
 
@@ -60,16 +60,7 @@ public class AuthService
             return null;
         }
 
-
-        return new UserResponse
-        {
-            Id = user.Id,
-            Email = user.Email,
-            Name = user.Name,
-            Role = user.Role.ToString(),
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt
-        };
+        return UserResponse.From(user);
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -77,6 +68,8 @@ public class AuthService
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Email == request.Email);
         if (user is null)
         {
+            // Hash anyway, so a login takes about the same time when the email does not exist.
+            _passwordHasher.HashPassword(new User(), request.Password);
             return null;
         }
 
@@ -162,15 +155,7 @@ public class AuthService
             ExpiresAt = accessExpiresAt,
             RefreshToken = refreshToken,
             RefreshTokenExpiresAt = storedToken.ExpiresAt,
-            User = new UserResponse
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Email = user.Email,
-                Role = user.Role.ToString(),
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt
-            }
+            User = UserResponse.From(user)
         };
     }
 
@@ -188,7 +173,7 @@ public class AuthService
     {
         var key = _configuration["Jwt:Key"];
         var issuer = _configuration["Jwt:Issuer"];
-        var audience = _configuration["Jwt:audience"];
+        var audience = _configuration["Jwt:Audience"];
         var expirationInMinutes = int.Parse(_configuration["Jwt:ExpirationInMinutes"]!);
 
         var expiresAt = DateTime.UtcNow.AddMinutes(expirationInMinutes);
@@ -208,7 +193,7 @@ public class AuthService
             audience: audience,
             claims: claims,
             expires: expiresAt,
-            signingCredentials:  credentials
+            signingCredentials: credentials
         );
 
         return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);

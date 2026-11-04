@@ -24,11 +24,6 @@ public static class EndpointsAuth
                     return Results.BadRequest(validationError);
                 }
 
-                if (request.Password != request.ConfirmationPassword)
-                {
-                    return Results.BadRequest(ApiErrors.PasswordsDoNotMatch);
-                }
-
                 var user = await authService.RegisterAsync(request);
                 if (user is null)
                 {
@@ -102,7 +97,8 @@ public static class EndpointsAuth
             }
 
             return Results.Ok(loginResponse);
-        });
+        })
+        .RequireRateLimiting("refresh");
 
         app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
             {
@@ -144,14 +140,19 @@ public static class EndpointsAuth
             return ApiErrors.NameTooLong;
         }
 
-        if (string.IsNullOrEmpty(request.Password))
+        if (string.IsNullOrWhiteSpace(request.Password))
         {
             return ApiErrors.PasswordRequired;
         }
 
-        if (request.Password.Length < 6)
+        if (request.Password.Length < User.PasswordMinLength)
         {
             return ApiErrors.PasswordTooShort;
+        }
+
+        if (request.Password != request.ConfirmationPassword)
+        {
+            return ApiErrors.PasswordsDoNotMatch;
         }
 
         return null;
@@ -164,12 +165,12 @@ public static class EndpointsAuth
             return ApiErrors.CurrentPasswordRequired;
         }
 
-        if (string.IsNullOrEmpty(request.NewPassword))
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
         {
             return ApiErrors.PasswordRequired;
         }
 
-        if (request.NewPassword.Length < 6)
+        if (request.NewPassword.Length < User.PasswordMinLength)
         {
             return ApiErrors.PasswordTooShort;
         }

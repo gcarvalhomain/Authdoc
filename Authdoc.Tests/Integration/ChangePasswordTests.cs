@@ -71,6 +71,46 @@ public class ChangePasswordTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task ChangePassword_WithSevenCharacterPassword_Returns400PasswordTooShort()
+    {
+        // Arrange
+        var (client, _) = await CreateUserClientAsync("change-short@gmail.com");
+
+        // Act
+        var response = await client.PutAsJsonAsync("/api/auth/password", new
+        {
+            currentPassword = "senha123",
+            newPassword = "nova123",
+            confirmationPassword = "nova123"
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("PASSWORD_TOO_SHORT", error!.Code);
+    }
+
+    [Fact]
+    public async Task ChangePassword_WithOnlySpacesPassword_Returns400PasswordRequired()
+    {
+        // Arrange
+        var (client, _) = await CreateUserClientAsync("change-blank@gmail.com");
+
+        // Act
+        var response = await client.PutAsJsonAsync("/api/auth/password", new
+        {
+            currentPassword = "senha123",
+            newPassword = "        ",
+            confirmationPassword = "        "
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("PASSWORD_REQUIRED", error!.Code);
+    }
+
+    [Fact]
     public async Task ChangePassword_RevokesExistingRefreshTokens()
     {
         // Arrange

@@ -132,6 +132,48 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task Register_WithSevenCharacterPassword_Returns400PasswordTooShort()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+
+        // Act
+        var response = await adminClient.PostAsJsonAsync("/api/auth/register", new
+        {
+            name = "Short Password",
+            email = "shortpassword@gmail.com",
+            password = "senha12",
+            confirmationPassword = "senha12"
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("PASSWORD_TOO_SHORT", error!.Code);
+    }
+
+    [Fact]
+    public async Task Register_WithOnlySpacesPassword_Returns400PasswordRequired()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+
+        // Act
+        var response = await adminClient.PostAsJsonAsync("/api/auth/register", new
+        {
+            name = "Blank Password",
+            email = "blankpassword@gmail.com",
+            password = "        ",
+            confirmationPassword = "        "
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("PASSWORD_REQUIRED", error!.Code);
+    }
+
+    [Fact]
     public async Task Register_WithUserToken_Returns403Forbidden()
     {
         // Arrange

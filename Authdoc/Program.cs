@@ -25,7 +25,12 @@ builder.Services.AddDbContext<ManagerDbContext>(options =>
 var jwtKey = builder.Configuration["Jwt:Key"];
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
-    throw new InvalidOperationException("Jwt:Key is not configured. See the 'JWT signing key' section in README.md.");
+    throw new InvalidOperationException("Jwt:Key is not configured. See the 'Chave de assinatura do JWT' section in README.md.");
+}
+
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException("Jwt:Key must have at least 32 bytes. See the 'Chave de assinatura do JWT' section in README.md.");
 }
 
 if (!int.TryParse(builder.Configuration["Jwt:ExpirationInMinutes"], out var jwtExpiration) || jwtExpiration <= 0)
@@ -72,20 +77,14 @@ builder.Services.AddAuthorization(options =>
 });
 
 var loginPermitLimit = builder.Configuration.GetValue("RateLimiting:LoginPermitLimit", 5);
+var refreshPermitLimit = builder.Configuration.GetValue("RateLimiting:RefreshPermitLimit", 30);
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    options.AddPolicy("login", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = loginPermitLimit,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
+    options.AddPolicy("login", httpContext => LimitPerMinuteByIp(httpContext, loginPermitLimit));
+    options.AddPolicy("refresh", httpContext => LimitPerMinuteByIp(httpContext, refreshPermitLimit));
 
     options.OnRejected = async (context, cancellationToken) =>
     {
@@ -93,10 +92,6 @@ builder.Services.AddRateLimiter(options =>
             ApiErrors.TooManyRequests, cancellationToken);
     };
 });
-
-
-// Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 
 var app = builder.Build();
 
@@ -125,5 +120,15 @@ app.MapAuthEndpoints();
 app.MapUserEndpoints();
 
 app.Run();
+
+static RateLimitPartition<string> LimitPerMinuteByIp(HttpContext httpContext, int permitLimit) =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
 
 public partial class Program { }

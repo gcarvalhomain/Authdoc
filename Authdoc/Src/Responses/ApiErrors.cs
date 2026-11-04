@@ -9,7 +9,7 @@ public static class ApiErrors
     public static readonly ErrorResponse EmailRequired = new() { Code = "EMAIL_REQUIRED", Message = "Email is required" };
     public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid" };
     public static readonly ErrorResponse PasswordRequired = new() { Code = "PASSWORD_REQUIRED", Message = "Password is required" };
-    public static readonly ErrorResponse PasswordTooShort = new() { Code = "PASSWORD_TOO_SHORT", Message = "Password must be at least 6 characters long" };
+    public static readonly ErrorResponse PasswordTooShort = new() { Code = "PASSWORD_TOO_SHORT", Message = "Password must be at least 8 characters long" };
     public static readonly ErrorResponse PasswordsDoNotMatch = new() { Code = "PASSWORDS_DO_NOT_MATCH", Message = "Passwords do not match" };
     public static readonly ErrorResponse RoleInvalid = new() { Code = "ROLE_INVALID", Message = "Role must be Admin or User" };
     public static readonly ErrorResponse CannotChangeOwnRole = new() { Code = "CANNOT_CHANGE_OWN_ROLE", Message = "You cannot change your own role" };
@@ -24,7 +24,7 @@ public static class ApiErrors
     // Authentication (401)
     public static readonly ErrorResponse InvalidCredentials = new() { Code = "INVALID_CREDENTIALS", Message = "Email or password is incorrect" };
     public static readonly ErrorResponse InvalidRefreshToken = new() { Code = "INVALID_REFRESH_TOKEN", Message = "Refresh token is invalid, expired or revoked" };
-    public static readonly ErrorResponse Unauthorized =new() { Code = "UNAUTHORIZED", Message = "A valid token is required" };
+    public static readonly ErrorResponse Unauthorized = new() { Code = "UNAUTHORIZED", Message = "A valid token is required" };
 
     // Authorization (403)
     public static readonly ErrorResponse Forbidden = new() { Code = "FORBIDDEN", Message = "You do not have permission to access this resource" };
@@ -38,4 +38,7 @@ public static class ApiErrors
 
     // Too many requests (429)
     public static readonly ErrorResponse TooManyRequests = new() { Code = "TOO_MANY_REQUESTS", Message = "Too many requests" };
+
+    // Server error (500)
+    public static readonly ErrorResponse InternalError = new() { Code = "INTERNAL_ERROR", Message = "An unexpected error occurred" };
 }

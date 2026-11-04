@@ -23,7 +23,7 @@ Por isso o projeto começa pela camada de identidade. Autenticação, papéis (r
 | Troca de senha | ✅ Implementado |
 | Autorização por papel (`Admin` / `User`) | ✅ Implementado |
 | Gestão de usuários (CRUD administrativo e paginação) | ✅ Implementado |
-| Rate limiting em login e troca de senha | ✅ Implementado |
+| Rate limiting em login, troca de senha e refresh | ✅ Implementado |
 | Tratamento global de exceções | ✅ Implementado |
 | Bootstrap automático (migrations + admin inicial) | ✅ Implementado |
 | Testes unitários e de integração | ✅ Implementado |
@@ -131,7 +131,8 @@ As configurações não sensíveis ficam em `Authdoc/appsettings.json`:
     "RefreshTokenExpirationInDays": 7
   },
   "RateLimiting": {
-    "LoginPermitLimit": 5
+    "LoginPermitLimit": 5,
+    "RefreshPermitLimit": 30
   }
 }
 ```
@@ -146,7 +147,7 @@ Em desenvolvimento, os segredos vêm dos User Secrets. Fora de desenvolvimento, 
 
 ### Chave de assinatura do JWT
 
-A chave de assinatura é um segredo, por isso **não** fica no `appsettings.json`. A API lê o valor de `Jwt:Key`, que precisa ter pelo menos 32 bytes (HS256). Gere uma chave aleatória uma vez e guarde nos [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), que ficam fora do repositório:
+A chave de assinatura é um segredo, por isso **não** fica no `appsettings.json`. A API lê o valor de `Jwt:Key`, que precisa ter pelo menos 32 bytes (HS256); com menos que isso, ela não inicia. Gere uma chave aleatória uma vez e guarde nos [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), que ficam fora do repositório:
 
 ```powershell
 cd Authdoc
@@ -207,7 +208,9 @@ A pipeline fica em `azure-pipelines.yml` e roda a cada alteração na branch `ma
 2. Compila em `Release`
 3. Executa os testes; se algum falhar, o deploy não acontece
 4. Publica a API e gera o artefato `drop`
-5. Faz o deploy no Azure App Service
+5. Faz o deploy no Azure App Service, apenas na `main` e com a variável `deployEnabled` em `'true'`
+
+O deploy está desligado (`deployEnabled: 'false'`) até o banco e as configurações de produção existirem. As demais etapas continuam rodando.
 
 ---
 
@@ -285,8 +288,8 @@ Content-Type: application/json
 - E-mail válido, de qualquer domínio e único na base, validado no cadastro e na atualização
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
 - Nome obrigatório, com no máximo 100 caracteres
-- Senha com no mínimo 6 caracteres, confirmada no cadastro
-- Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
+- Senha com no mínimo 8 caracteres, sem ser só espaços, confirmada no cadastro
+- Login e troca de senha limitados a 5 tentativas por minuto por IP, e refresh a 30; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
 - Trocar a senha revoga todos os refresh tokens do usuário
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
@@ -312,8 +315,9 @@ As respostas de erro da API têm o mesmo formato, com um `code` estável (para o
 | `404` | `USER_NOT_FOUND` |
 | `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
 | `429` | `TOO_MANY_REQUESTS` |
+| `500` | `INTERNAL_ERROR` |
 
-Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`. Erros inesperados (`500`) são a exceção: eles retornam um `ProblemDetails` genérico.
+Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`.
 
 ---
 
@@ -374,7 +378,6 @@ A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento
 | Limitação | Impacto | Possível solução |
 |---|---|---|
 | O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes`. O refresh já devolve o papel novo, mas o token antigo segue válido até vencer | Reduzir `Jwt:ExpirationInMinutes` (o refresh evita logins repetidos) ou verificar um *security stamp* a cada requisição |
-| O login responde mais rápido quando o e-mail não existe | Um atacante pode medir o tempo e descobrir quais e-mails estão cadastrados | Verificar um hash falso mesmo quando o usuário não existe |
 | A regra do último admin não é atômica | Duas requisições simultâneas podem rebaixar ou excluir os dois últimos admins | Transação com isolamento adequado ou trava no banco |
 | O rate limiting fica na memória e é por IP | Zera quando a API reinicia, não é compartilhado entre instâncias e, atrás de um proxy, todos podem parecer o mesmo IP | Rate limiting distribuído (ex.: Redis) e configurar `ForwardedHeaders` |
 | Os testes de integração usam banco em memória | O índice único de e-mail não é verificado pelo banco nos testes | Testes com SQL Server real (ex.: Testcontainers) |

@@ -19,11 +19,11 @@ public static class DbInitializer
         {
             await context.Database.EnsureCreatedAsync();
         }
-        
+
         bool hasAdmin = await context.Users.AnyAsync(u => u.Role == UserRole.Admin);
-        
+
         if (hasAdmin) return;
-        
+
         string adminEmail = "admin@system.com";
         var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
 
@@ -53,8 +53,7 @@ public static class DbInitializer
 
             await context.Users.AddAsync(initialAdmin);
         }
-        
+
         await context.SaveChangesAsync();
-        Console.WriteLine("Initialized Admin");
     }
 }

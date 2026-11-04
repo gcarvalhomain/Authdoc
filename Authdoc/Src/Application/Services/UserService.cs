@@ -25,7 +25,7 @@ public class UserService
             return null;
         }
 
-        return ToResponse(user);
+        return UserResponse.From(user);
     }
 
     public async Task<PagedResponse<UserResponse>> ListAsync(int page, int pageSize)
@@ -41,23 +41,10 @@ public class UserService
 
         return new PagedResponse<UserResponse>
         {
-            Items = users.Select(ToResponse).ToList(),
+            Items = users.Select(UserResponse.From).ToList(),
             Page = page,
             PageSize = pageSize,
             TotalCount = totalCount
-        };
-    }
-
-    private static UserResponse ToResponse(User user)
-    {
-        return new UserResponse
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            Role = user.Role.ToString(),
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt
         };
     }
 
@@ -142,7 +129,7 @@ public class UserService
 
     public async Task<bool> EmailBelongsToAnotherUserAsync(Guid id, string email)
     {
-        
+
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id != id);
     }
 }
