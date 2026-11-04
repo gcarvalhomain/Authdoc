@@ -207,7 +207,9 @@ A pipeline fica em `azure-pipelines.yml` e roda a cada alteração na branch `ma
 2. Compila em `Release`
 3. Executa os testes; se algum falhar, o deploy não acontece
 4. Publica a API e gera o artefato `drop`
-5. Faz o deploy no Azure App Service
+5. Faz o deploy no Azure App Service, apenas na `main` e com a variável `deployEnabled` em `'true'`
+
+O deploy está desligado (`deployEnabled: 'false'`) até o banco e as configurações de produção existirem. As demais etapas continuam rodando.
 
 ---
 
