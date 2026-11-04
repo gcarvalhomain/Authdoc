@@ -77,6 +77,8 @@ public class AuthService
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Email == request.Email);
         if (user is null)
         {
+            // Hash anyway, so a login takes about the same time when the email does not exist.
+            _passwordHasher.HashPassword(new User(), request.Password);
             return null;
         }
 
