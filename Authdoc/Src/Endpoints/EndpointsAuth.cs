@@ -24,11 +24,6 @@ public static class EndpointsAuth
                     return Results.BadRequest(validationError);
                 }
 
-                if (request.Password != request.ConfirmationPassword)
-                {
-                    return Results.BadRequest(ApiErrors.PasswordsDoNotMatch);
-                }
-
                 var user = await authService.RegisterAsync(request);
                 if (user is null)
                 {
@@ -153,6 +148,11 @@ public static class EndpointsAuth
         if (request.Password.Length < User.PasswordMinLength)
         {
             return ApiErrors.PasswordTooShort;
+        }
+
+        if (request.Password != request.ConfirmationPassword)
+        {
+            return ApiErrors.PasswordsDoNotMatch;
         }
 
         return null;
