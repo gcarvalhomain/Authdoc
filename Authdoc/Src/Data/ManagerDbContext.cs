@@ -19,6 +19,10 @@ public class ManagerDbContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
+            entity.Property(u => u.Name)
+                .HasMaxLength(User.NameMaxLength)
+                .IsRequired();
+
             entity.Property(u => u.Email)
                 .HasMaxLength(254)
                 .IsRequired();

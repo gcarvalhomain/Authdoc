@@ -19,9 +19,15 @@ Por isso o projeto começa pela camada de identidade. Autenticação, papéis (r
 | Módulo | Status |
 |---|---|
 | Autenticação (login, emissão de JWT) | ✅ Implementado |
+| Sessão (refresh token com rotação e revogação) | ✅ Implementado |
+| Troca de senha | ✅ Implementado |
 | Autorização por papel (`Admin` / `User`) | ✅ Implementado |
-| Gestão de usuários (CRUD administrativo) | ✅ Implementado |
+| Gestão de usuários (CRUD administrativo e paginação) | ✅ Implementado |
+| Rate limiting em login e troca de senha | ✅ Implementado |
+| Tratamento global de exceções | ✅ Implementado |
 | Bootstrap automático (migrations + admin inicial) | ✅ Implementado |
+| Testes unitários e de integração | ✅ Implementado |
+| Pipeline de CI/CD (build, testes e deploy) | ✅ Implementado |
 | **Módulo de documentos** | 🚧 Próxima etapa |
 | Vínculo documento ↔ usuário com autorização por propriedade | 🚧 Próxima etapa |
 
@@ -39,10 +45,13 @@ Hoje o Authdoc é uma **API de identidade e gestão de usuários**. O módulo de
 | Autenticação | JWT Bearer (`Microsoft.AspNetCore.Authentication.JwtBearer`) |
 | Hash de senha | `IPasswordHasher<T>` do ASP.NET Core Identity (PBKDF2) |
 | Documentação | OpenAPI + [Scalar](https://scalar.com) |
+| Testes | xUnit + `WebApplicationFactory` + EF Core InMemory |
+| CI/CD | Azure Pipelines + Azure App Service |
 
 ## Conceitos e fundamentos aplicados
 
 - **Autenticação stateless com JWT:** o token é assinado com HMAC-SHA256 e carrega claims de identidade (`NameIdentifier`, `Name`, `Email`, `Role`). A API valida issuer, audience, tempo de vida e assinatura em cada requisição.
+- **Refresh token com rotação:** cada uso gera um novo token e revoga o anterior. No banco fica apenas o hash SHA-256.
 - **Autorização baseada em papéis (RBAC):** uma policy `Admin` protege as rotas administrativas.
 - **Hash de senha com salt:** as senhas nunca são persistidas em texto puro. O `PasswordHasher` gera hashes PBKDF2 com salt aleatório e versionamento de formato, o que permite fazer rehash quando o algoritmo evolui.
 - **Injeção de dependência e ciclo de vida de serviços:** services e `DbContext` são registrados como *Scoped* (um por requisição). No startup, um escopo explícito é criado para o bootstrap do banco.
@@ -56,19 +65,24 @@ Hoje o Authdoc é uma **API de identidade e gestão de usuários**. O módulo de
 ## Arquitetura
 
 ```
-Authdoc/
-├── Program.cs                     # Composição: DI, JWT, policies, bootstrap, pipeline
-└── Src/
-    ├── Endpoints/                 # Mapeamento HTTP (Minimal API) e validação de entrada
-    ├── Application/
-    │   ├── DTOs/                  # Contratos de request/response
-    │   └── Services/              # AuthService, UserService (regras de negócio)
-    ├── Data/
-    │   ├── ManagerDbContext.cs    # DbContext e configuração do modelo
-    │   ├── DbInitializer.cs       # Migrations + seed do admin inicial
-    │   └── Migrations/
-    ├── Models/Entities/           # Entidades de domínio (User, UserRole)
-    └── Responses/                 # Formato padrão de erro
+├── azure-pipelines.yml            # Pipeline de CI/CD
+├── Authdoc/
+│   ├── Program.cs                 # Composição: DI, JWT, policies, rate limiting, bootstrap, pipeline HTTP
+│   └── Src/
+│       ├── Endpoints/             # Mapeamento HTTP (Minimal API) e validação de entrada
+│       ├── Application/
+│       │   ├── DTOs/              # Contratos de request/response
+│       │   └── Services/          # AuthService, UserService (regras de negócio)
+│       ├── Data/
+│       │   ├── ManagerDbContext.cs  # DbContext e configuração do modelo
+│       │   ├── DbInitializer.cs     # Migrations + seed do admin inicial
+│       │   └── Migrations/
+│       ├── Models/Entities/       # Entidades de domínio (User, UserRole, RefreshToken)
+│       ├── Responses/             # Formato de erro e tratamento global de exceções
+│       └── Validators/            # Validação de e-mail
+└── Authdoc.Tests/
+    ├── Integration/               # API completa via HTTP
+    └── *.cs                       # Testes unitários
 ```
 
 Fluxo de uma requisição autenticada:
@@ -113,16 +127,26 @@ As configurações não sensíveis ficam em `Authdoc/appsettings.json`:
   "Jwt": {
     "Issuer": "Authdoc",
     "Audience": "Users",
-    "ExpirationInMinutes": 60
+    "ExpirationInMinutes": 60,
+    "RefreshTokenExpirationInDays": 7
+  },
+  "RateLimiting": {
+    "LoginPermitLimit": 5
   }
 }
 ```
 
-A connection string tem uma fonte única: o `appsettings.json`. Ela é usada tanto pela aplicação quanto pelo `dotnet ef`.
+Em desenvolvimento, os segredos vêm dos User Secrets. Fora de desenvolvimento, a API precisa destas variáveis de ambiente:
 
-### JWT signing key
+| Configuração | Variável de ambiente | Obrigatória |
+|---|---|---|
+| Chave de assinatura do JWT | `Jwt__Key` | Sempre |
+| Senha do admin inicial | `SeedData__AdminPassword` | Enquanto o admin inicial não existir |
+| Connection string do banco | `ConnectionStrings__DefaultConnection` | Sempre, pois o valor padrão só serve para a máquina local |
 
-The JWT signing key is a secret, so it is **not** stored in `appsettings.json`. The API reads it from the `Jwt:Key` setting, which must hold at least 32 bytes (HS256). Generate a random key once and store it with [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), which keeps it outside the repository:
+### Chave de assinatura do JWT
+
+A chave de assinatura é um segredo, por isso **não** fica no `appsettings.json`. A API lê o valor de `Jwt:Key`, que precisa ter pelo menos 32 bytes (HS256). Gere uma chave aleatória uma vez e guarde nos [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), que ficam fora do repositório:
 
 ```powershell
 cd Authdoc
@@ -138,29 +162,27 @@ dotnet user-secrets set "Jwt:Key" ([Convert]::ToBase64String($bytes))
 dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 64 | tr -d '\n')"
 ```
 
-User Secrets are only loaded in the `Development` environment. In any other environment, provide the key through the `Jwt__Key` environment variable.
+### Senha do admin inicial
 
-### Admin seed password
-
-The password of the initial admin is also a secret. Choose a strong password and store it in the `SeedData:AdminPassword` setting:
+A senha do admin inicial também é um segredo. Escolha uma senha forte e guarde em `SeedData:AdminPassword`:
 
 ```powershell
 cd Authdoc
-dotnet user-secrets set "SeedData:AdminPassword" "<your-strong-password>"
+dotnet user-secrets set "SeedData:AdminPassword" "<sua-senha-forte>"
 ```
 
-It is only required when the initial admin is created (see [Bootstrap](#bootstrap-o-primeiro-usuário)). If the admin does not exist yet and the setting is missing, the API fails at startup. In other environments, use the `SeedData__AdminPassword` environment variable.
+Ela só é necessária quando o admin inicial é criado (veja [Bootstrap](#bootstrap-o-primeiro-usuário)). Se o admin ainda não existir e a configuração estiver ausente, a API falha na inicialização.
 
 ### Subindo a API
 
 ```bash
-git clone https://github.com/gcarvalhomain/Authdoc.git
+git clone <url-do-repositorio>
 cd Authdoc
 dotnet run --project Authdoc
 ```
 
 - API: `http://localhost:5297`
-- Documentação interativa (Scalar): `http://localhost:5297/scalar`
+- Documentação interativa (Scalar, apenas em `Development`): `http://localhost:5297/scalar`
 
 ### Rodando os testes
 
@@ -171,9 +193,21 @@ dotnet test
 | Tipo | O que cobre |
 |---|---|
 | Unitários | `EmailValidator` e as regras do `UserService` (último admin, exclusão, troca de papel) |
-| Integração | A API inteira via HTTP com `WebApplicationFactory`: status e códigos de erro (`401`, `403`, `404`, `409`, `400`, `429`) |
+| Integração | A API inteira via HTTP com `WebApplicationFactory`: autenticação, refresh token, troca de senha, usuários, paginação, rate limiting e códigos de erro |
 
 Os testes usam um banco **em memória** e configuração própria, então não precisam de SQL Server nem de User Secrets.
+
+---
+
+## CI/CD
+
+A pipeline fica em `azure-pipelines.yml` e roda a cada alteração na branch `main`:
+
+1. Restaura as dependências
+2. Compila em `Release`
+3. Executa os testes; se algum falhar, o deploy não acontece
+4. Publica a API e gera o artefato `drop`
+5. Faz o deploy no Azure App Service
 
 ---
 
@@ -192,7 +226,7 @@ Credenciais iniciais:
 
 | E-mail | Senha |
 |---|---|
-| `admin@system.com` | O valor configurado em `SeedData:AdminPassword` (veja [Admin seed password](#admin-seed-password)) |
+| `admin@system.com` | O valor configurado em `SeedData:AdminPassword` (veja [Senha do admin inicial](#senha-do-admin-inicial)) |
 
 ### Primeiro fluxo completo
 
@@ -210,8 +244,6 @@ Content-Type: application/json
 
 {
   "name": "Maria Silva",
-  "age": 29,
-  "gender": "Female",
   "email": "maria@gmail.com",
   "password": "senha123",
   "confirmationPassword": "senha123"
@@ -244,44 +276,44 @@ Content-Type: application/json
 |---|---|---|---|
 | `GET` | `/api/users?page=1&pageSize=10` | Admin | Lista usuários com paginação (`pageSize` de 1 a 100) |
 | `GET` | `/api/users/{id}` | Admin | Consulta um usuário |
-| `PUT` | `/api/users/{id}` | Admin | Atualiza nome, idade e e-mail |
+| `PUT` | `/api/users/{id}` | Admin | Atualiza nome e e-mail |
 | `PATCH` | `/api/users/{id}/role` | Admin | Altera o papel do usuário (`Admin` ou `User`) |
 | `DELETE` | `/api/users/{id}` | Admin | Remove um usuário |
 
 ### Regras de negócio
 
-- E-mail válido, de um domínio permitido e único na base, validado no cadastro e na atualização
+- E-mail válido, de qualquer domínio e único na base, validado no cadastro e na atualização
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
+- Nome obrigatório, com no máximo 100 caracteres
 - Senha com no mínimo 6 caracteres, confirmada no cadastro
 - Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
 - Trocar a senha revoga todos os refresh tokens do usuário
-- Uma mudança de papel passa a valer no próximo refresh, pois o novo token é montado a partir do usuário atual
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
 - Papel alterado apenas por `PATCH /api/users/{id}/role`, com corpo `{ "role": "Admin" }` ou `{ "role": "User" }`
+- Uma mudança de papel passa a valer no próximo refresh ou login, pois o papel fica gravado no JWT
 - Um admin não pode alterar o próprio papel, e o último admin do sistema não pode ser rebaixado
 - Um admin não pode excluir o próprio usuário, e o último admin do sistema não pode ser excluído
-- A mudança de papel só vale no token após um novo login, pois o papel fica gravado no JWT
-- Tratamento Global de Erros: Gerenciamento centralizado de exceções com `IExceptionHandler` do .NET para interceptar e logar falhas inesperadas de forma segura.
+- Exceções inesperadas são interceptadas e registradas de forma centralizada pelo `IExceptionHandler`, sem expor detalhes internos ao cliente
 
 ### Formato de erro
 
-Toda resposta de erro tem o mesmo formato, com um `code` estável (para o cliente tratar) e uma `message` legível:
+As respostas de erro da API têm o mesmo formato, com um `code` estável (para o cliente tratar) e uma `message` legível:
 
 ```json
-{ "code": "EMAIL_INVALID", "message": "Email is invalid or its domain is not allowed" }
+{ "code": "EMAIL_INVALID", "message": "Email is invalid" }
 ```
 
 | Status | Códigos |
 |---|---|
-| `400` | `NAME_REQUIRED`, `GENDER_REQUIRED`, `AGE_TOO_LOW`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
+| `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `NAME_TOO_LONG`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
 | `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
 | `404` | `USER_NOT_FOUND` |
 | `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
 | `429` | `TOO_MANY_REQUESTS` |
 
-Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`.
+Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`. Erros inesperados (`500`) são a exceção: eles retornam um `ProblemDetails` genérico.
 
 ---
 
@@ -320,21 +352,22 @@ erDiagram
 ### Evolução da base
 
 - [ ] Autorização por recurso (`IAuthorizationHandler`) para documentos
-- [ ] Validação centralizada (FluentValidation) e respostas de erro em `ProblemDetails`
-- [ ] Tratamento global de exceções
-- [ ] Índice único e limites de tamanho nas colunas de `User`
+- [ ] Validação centralizada (FluentValidation)
+- [ ] Docker Compose (API + SQL Server)
+- [x] Pipeline de build, testes e deploy
+- [x] Índice único de e-mail e limites de tamanho em `Email` e `Name`
+- [x] Tratamento global de exceções
 - [x] Refresh token e revogação de sessão
 - [x] Rate limiting no login
 - [x] Listagem paginada de usuários
 - [x] Segredos via User Secrets / variáveis de ambiente
 - [x] Testes unitários e de integração (xUnit + `WebApplicationFactory`)
-- [ ] Docker Compose (API + SQL Server) e CI com GitHub Actions
 
 ---
 
 ## Segurança
 
-A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento elas vêm dos User Secrets e, nos demais ambientes, de variáveis de ambiente (veja [JWT signing key](#jwt-signing-key) e [Admin seed password](#admin-seed-password)). Em qualquer ambiente real, a senha do admin deve ser trocada no primeiro acesso.
+A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento elas vêm dos User Secrets e, nos demais ambientes, de variáveis de ambiente (veja [Configuração](#configuração)). Em qualquer ambiente real, a senha do admin deve ser trocada no primeiro acesso.
 
 ### Limitações conhecidas
 

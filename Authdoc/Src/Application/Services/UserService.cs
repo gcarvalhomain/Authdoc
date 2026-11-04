@@ -55,30 +55,35 @@ public class UserService
             Id = user.Id,
             Name = user.Name,
             Email = user.Email,
-            Gender = user.Gender,
-            Age = user.Age,
             Role = user.Role.ToString(),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
         };
     }
 
-    public async Task<bool> UpdateAsync(Guid id, UpdateUserRequest request)
+    public async Task<UpdateUserResult> UpdateAsync(Guid id, UpdateUserRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
 
         if (user is null)
         {
-            return false;
+            return UpdateUserResult.UserNotFound;
         }
 
         user.Name = request.Name;
-        user.Age = request.Age;
         user.Email = request.Email;
         user.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
-        return true;
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            return UpdateUserResult.EmailAlreadyInUse;
+        }
+
+        return UpdateUserResult.Updated;
     }
 
     public async Task<ChangeRoleResult> ChangeRoleAsync(Guid id, UserRole role)
@@ -140,6 +145,13 @@ public class UserService
         
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id != id);
     }
+}
+
+public enum UpdateUserResult
+{
+    Updated,
+    UserNotFound,
+    EmailAlreadyInUse
 }
 
 public enum ChangeRoleResult

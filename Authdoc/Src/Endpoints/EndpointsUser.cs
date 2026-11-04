@@ -47,6 +47,8 @@ public static class EndpointsUser
             .RequireAuthorization("Admin");
         app.MapPut("/api/users/{id}", async (Guid id, UpdateUserRequest request, UserService userService) =>
             {
+                request.Email = EmailValidator.Normalize(request.Email);
+
                 var validationError = ValidateUpdate(request);
                 if (validationError is not null)
                 {
@@ -59,10 +61,15 @@ public static class EndpointsUser
                     return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
 
-                var update = await userService.UpdateAsync(id, request);
-                if (!update)
+                var result = await userService.UpdateAsync(id, request);
+                if (result == UpdateUserResult.UserNotFound)
                 {
                     return Results.NotFound(ApiErrors.UserNotFound);
+                }
+
+                if (result == UpdateUserResult.EmailAlreadyInUse)
+                {
+                    return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
 
                 var user = await userService.GetByIdAsync(id);
@@ -136,14 +143,14 @@ public static class EndpointsUser
             return ApiErrors.EmailInvalid;
         }
 
-        if (request.Age < 18)
-        {
-            return ApiErrors.AgeTooLow;
-        }
-
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return ApiErrors.NameRequired;
+        }
+
+        if (request.Name.Length > User.NameMaxLength)
+        {
+            return ApiErrors.NameTooLong;
         }
 
         return null;

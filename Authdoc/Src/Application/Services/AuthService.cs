@@ -50,16 +50,22 @@ public class AuthService
         
         user.PasswordHash = _passwordHasher.HashPassword(user, request.Password);
         _context.Users.Add(user);
-        await _context.SaveChangesAsync();
-        
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (exception.IsUniqueViolation())
+        {
+            return null;
+        }
+
 
         return new UserResponse
         {
             Id = user.Id,
             Email = user.Email,
             Name = user.Name,
-            Age = user.Age,
-            Gender =  user.Gender,
             Role = user.Role.ToString(),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt
@@ -161,8 +167,6 @@ public class AuthService
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
-                Age = user.Age,
-                Gender = user.Gender,
                 Role = user.Role.ToString(),
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt

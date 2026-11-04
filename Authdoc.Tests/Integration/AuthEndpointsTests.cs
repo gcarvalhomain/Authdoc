@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text;
 using Authdoc.Responses;
 
 namespace Authdoc.Tests.Integration;
@@ -12,6 +13,39 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     public AuthEndpointsTests(AuthdocApiFactory factory)
     {
         _factory = factory;
+    }
+
+    [Theory]
+    [InlineData("{\"email\":")]
+    [InlineData("{\"email\":\"admin@system.com\"}")]
+    public async Task Login_WithUnreadableBody_Returns400InvalidRequest(string body)
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+        using var content = new StringContent(body, Encoding.UTF8, "application/json");
+
+        // Act
+        var response = await client.PostAsync("/api/auth/login", content);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("INVALID_REQUEST", error!.Code);
+    }
+
+    [Fact]
+    public async Task Register_WithUntrimmedUppercaseEmail_StoresNormalizedAndAllowsLogin()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+
+        // Act
+        var user = await adminClient.RegisterUserAsync("  Normalized@Gmail.com ");
+        var login = await _factory.CreateClient().LoginAsync(" NORMALIZED@gmail.com", "senha123");
+
+        // Assert
+        Assert.Equal("normalized@gmail.com", user.Email);
+        Assert.Equal(user.Id, login.User.Id);
     }
 
     [Fact]
@@ -86,8 +120,6 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
         var response = await adminClient.PostAsJsonAsync("/api/auth/register", new
         {
             name = "Other User",
-            age = 30,
-            gender = "Male",
             email = "duplicated@gmail.com",
             password = "senha123",
             confirmationPassword = "senha123"

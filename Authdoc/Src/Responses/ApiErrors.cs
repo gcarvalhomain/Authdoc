@@ -3,11 +3,11 @@ namespace Authdoc.Responses;
 public static class ApiErrors
 {
     // Validation (400)
+    public static readonly ErrorResponse InvalidRequest = new() { Code = "INVALID_REQUEST", Message = "The request could not be read. Check its body and parameters" };
     public static readonly ErrorResponse NameRequired = new() { Code = "NAME_REQUIRED", Message = "Name is required" };
-    public static readonly ErrorResponse GenderRequired = new() { Code = "GENDER_REQUIRED", Message = "Gender is required" };
-    public static readonly ErrorResponse AgeTooLow = new() { Code = "AGE_TOO_LOW", Message = "Age must be 18 years of age or older" };
+    public static readonly ErrorResponse NameTooLong = new() { Code = "NAME_TOO_LONG", Message = "Name must have at most 100 characters" };
     public static readonly ErrorResponse EmailRequired = new() { Code = "EMAIL_REQUIRED", Message = "Email is required" };
-    public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid or its domain is not allowed" };
+    public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid" };
     public static readonly ErrorResponse PasswordRequired = new() { Code = "PASSWORD_REQUIRED", Message = "Password is required" };
     public static readonly ErrorResponse PasswordTooShort = new() { Code = "PASSWORD_TOO_SHORT", Message = "Password must be at least 6 characters long" };
     public static readonly ErrorResponse PasswordsDoNotMatch = new() { Code = "PASSWORDS_DO_NOT_MATCH", Message = "Passwords do not match" };

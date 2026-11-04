@@ -17,6 +17,14 @@ public class GlobalExceptionHandler : IExceptionHandler
         Exception exception,
         CancellationToken cancellationToken)
     {
+        if (exception is BadHttpRequestException badRequest)
+        {
+            httpContext.Response.StatusCode = badRequest.StatusCode;
+            await httpContext.Response.WriteAsJsonAsync(ApiErrors.InvalidRequest, cancellationToken);
+
+            return true;
+        }
+
         _logger.LogError(exception, "Ocorreu um erro não tratado: {Message}", exception.Message);
 
         var problemDetails = new ProblemDetails

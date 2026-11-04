@@ -4,11 +4,11 @@ namespace Authdoc.Models.Entities;
 
 public class User
 {
-    public int Age { get; set; }
+    public const int NameMaxLength = 100;
+
     public Guid Id { get; set; } =  Guid.NewGuid(); 
     public string Email { get; set; }= string.Empty;
     public string PasswordHash { get; set; }= string.Empty;
-    public string Gender { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

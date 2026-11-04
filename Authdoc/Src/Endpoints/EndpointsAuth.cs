@@ -2,6 +2,7 @@ using System;
 using System.Security.Claims;
 using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
+using Authdoc.Models.Entities;
 using Authdoc.Responses;
 using Authdoc.Validators;
 using Microsoft.AspNetCore.Builder;
@@ -15,7 +16,8 @@ public static class EndpointsAuth
     {
         app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
-                
+                request.Email = EmailValidator.Normalize(request.Email);
+
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)
                 {
@@ -38,6 +40,8 @@ public static class EndpointsAuth
             .RequireAuthorization("Admin");
         app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
         {
+            request.Email = EmailValidator.Normalize(request.Email);
+
             var validationError = ValidateLogin(request);
             if (validationError is not null)
             {
@@ -133,6 +137,11 @@ public static class EndpointsAuth
         if (string.IsNullOrWhiteSpace(request.Name))
         {
             return ApiErrors.NameRequired;
+        }
+
+        if (request.Name.Length > User.NameMaxLength)
+        {
+            return ApiErrors.NameTooLong;
         }
 
         if (string.IsNullOrEmpty(request.Password))
