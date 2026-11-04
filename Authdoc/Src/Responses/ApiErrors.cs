@@ -38,4 +38,7 @@ public static class ApiErrors
 
     // Too many requests (429)
     public static readonly ErrorResponse TooManyRequests = new() { Code = "TOO_MANY_REQUESTS", Message = "Too many requests" };
+
+    // Server error (500)
+    public static readonly ErrorResponse InternalError = new() { Code = "INTERNAL_ERROR", Message = "An unexpected error occurred" };
 }

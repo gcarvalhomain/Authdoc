@@ -315,8 +315,9 @@ As respostas de erro da API têm o mesmo formato, com um `code` estável (para o
 | `404` | `USER_NOT_FOUND` |
 | `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
 | `429` | `TOO_MANY_REQUESTS` |
+| `500` | `INTERNAL_ERROR` |
 
-Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`. Erros inesperados (`500`) são a exceção: eles retornam um `ProblemDetails` genérico.
+Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`.
 
 ---
 

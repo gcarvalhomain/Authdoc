@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
 
 namespace Authdoc.Responses;
 
@@ -25,18 +24,10 @@ public class GlobalExceptionHandler : IExceptionHandler
             return true;
         }
 
-        _logger.LogError(exception, "Ocorreu um erro não tratado: {Message}", exception.Message);
+        _logger.LogError(exception, "Unhandled exception: {Message}", exception.Message);
 
-        var problemDetails = new ProblemDetails
-        {
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Erro interno no servidor",
-            Detail = "Ocorreu um erro ao processar a sua requisição."
-        };
-
-        httpContext.Response.StatusCode = problemDetails.Status.Value;
-
-        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+        httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        await httpContext.Response.WriteAsJsonAsync(ApiErrors.InternalError, cancellationToken);
 
         return true;
     }
