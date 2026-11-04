@@ -60,16 +60,7 @@ public class AuthService
             return null;
         }
 
-
-        return new UserResponse
-        {
-            Id = user.Id,
-            Email = user.Email,
-            Name = user.Name,
-            Role = user.Role.ToString(),
-            CreatedAt = user.CreatedAt,
-            UpdatedAt = user.UpdatedAt
-        };
+        return UserResponse.From(user);
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
@@ -164,15 +155,7 @@ public class AuthService
             ExpiresAt = accessExpiresAt,
             RefreshToken = refreshToken,
             RefreshTokenExpiresAt = storedToken.ExpiresAt,
-            User = new UserResponse
-            {
-                Id = user.Id,
-                Name = user.Name,
-                Email = user.Email,
-                Role = user.Role.ToString(),
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt
-            }
+            User = UserResponse.From(user)
         };
     }
 
