@@ -173,7 +173,7 @@ public class AuthService
     {
         var key = _configuration["Jwt:Key"];
         var issuer = _configuration["Jwt:Issuer"];
-        var audience = _configuration["Jwt:audience"];
+        var audience = _configuration["Jwt:Audience"];
         var expirationInMinutes = int.Parse(_configuration["Jwt:ExpirationInMinutes"]!);
 
         var expiresAt = DateTime.UtcNow.AddMinutes(expirationInMinutes);

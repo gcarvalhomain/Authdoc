@@ -55,6 +55,5 @@ public static class DbInitializer
         }
         
         await context.SaveChangesAsync();
-        Console.WriteLine("Initialized Admin");
     }
 }
