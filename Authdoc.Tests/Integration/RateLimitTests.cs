@@ -34,4 +34,26 @@ public class RateLimitTests : IClassFixture<RateLimitedApiFactory>
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.Equal("TOO_MANY_REQUESTS", error!.Code);
     }
+
+    [Fact]
+    public async Task Refresh_AfterFiveAttempts_Returns429TooManyRequests()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+        var invalidRefresh = new { refreshToken = "invalid-token" };
+
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            var allowed = await client.PostAsJsonAsync("/api/auth/refresh", invalidRefresh);
+            Assert.Equal(HttpStatusCode.Unauthorized, allowed.StatusCode);
+        }
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/auth/refresh", invalidRefresh);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("TOO_MANY_REQUESTS", error!.Code);
+    }
 }

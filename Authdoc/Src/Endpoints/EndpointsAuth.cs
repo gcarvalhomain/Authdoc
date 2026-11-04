@@ -102,7 +102,8 @@ public static class EndpointsAuth
             }
 
             return Results.Ok(loginResponse);
-        });
+        })
+        .RequireRateLimiting("refresh");
 
         app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
             {

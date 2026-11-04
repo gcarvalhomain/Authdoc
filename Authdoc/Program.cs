@@ -77,20 +77,14 @@ builder.Services.AddAuthorization(options =>
 });
 
 var loginPermitLimit = builder.Configuration.GetValue("RateLimiting:LoginPermitLimit", 5);
+var refreshPermitLimit = builder.Configuration.GetValue("RateLimiting:RefreshPermitLimit", 30);
 
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 
-    options.AddPolicy("login", httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = loginPermitLimit,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
+    options.AddPolicy("login", httpContext => LimitPerMinuteByIp(httpContext, loginPermitLimit));
+    options.AddPolicy("refresh", httpContext => LimitPerMinuteByIp(httpContext, refreshPermitLimit));
 
     options.OnRejected = async (context, cancellationToken) =>
     {
@@ -130,5 +124,15 @@ app.MapAuthEndpoints();
 app.MapUserEndpoints();
 
 app.Run();
+
+static RateLimitPartition<string> LimitPerMinuteByIp(HttpContext httpContext, int permitLimit) =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permitLimit,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        });
 
 public partial class Program { }

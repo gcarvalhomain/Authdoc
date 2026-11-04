@@ -23,7 +23,7 @@ Por isso o projeto começa pela camada de identidade. Autenticação, papéis (r
 | Troca de senha | ✅ Implementado |
 | Autorização por papel (`Admin` / `User`) | ✅ Implementado |
 | Gestão de usuários (CRUD administrativo e paginação) | ✅ Implementado |
-| Rate limiting em login e troca de senha | ✅ Implementado |
+| Rate limiting em login, troca de senha e refresh | ✅ Implementado |
 | Tratamento global de exceções | ✅ Implementado |
 | Bootstrap automático (migrations + admin inicial) | ✅ Implementado |
 | Testes unitários e de integração | ✅ Implementado |
@@ -131,7 +131,8 @@ As configurações não sensíveis ficam em `Authdoc/appsettings.json`:
     "RefreshTokenExpirationInDays": 7
   },
   "RateLimiting": {
-    "LoginPermitLimit": 5
+    "LoginPermitLimit": 5,
+    "RefreshPermitLimit": 30
   }
 }
 ```
@@ -288,7 +289,7 @@ Content-Type: application/json
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
 - Nome obrigatório, com no máximo 100 caracteres
 - Senha com no mínimo 8 caracteres, confirmada no cadastro
-- Login e troca de senha limitados a 5 tentativas por minuto por IP; acima disso a API responde `429`
+- Login e troca de senha limitados a 5 tentativas por minuto por IP, e refresh a 30; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
 - Trocar a senha revoga todos os refresh tokens do usuário
 - Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
