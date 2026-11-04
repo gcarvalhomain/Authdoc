@@ -28,6 +28,11 @@ if (string.IsNullOrWhiteSpace(jwtKey))
     throw new InvalidOperationException("Jwt:Key is not configured. See the 'Chave de assinatura do JWT' section in README.md.");
 }
 
+if (Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException("Jwt:Key must have at least 32 bytes. See the 'Chave de assinatura do JWT' section in README.md.");
+}
+
 if (!int.TryParse(builder.Configuration["Jwt:ExpirationInMinutes"], out var jwtExpiration) || jwtExpiration <= 0)
 {
     throw new InvalidOperationException("Jwt:ExpirationInMinutes must be a positive number.");

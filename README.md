@@ -146,7 +146,7 @@ Em desenvolvimento, os segredos vêm dos User Secrets. Fora de desenvolvimento, 
 
 ### Chave de assinatura do JWT
 
-A chave de assinatura é um segredo, por isso **não** fica no `appsettings.json`. A API lê o valor de `Jwt:Key`, que precisa ter pelo menos 32 bytes (HS256). Gere uma chave aleatória uma vez e guarde nos [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), que ficam fora do repositório:
+A chave de assinatura é um segredo, por isso **não** fica no `appsettings.json`. A API lê o valor de `Jwt:Key`, que precisa ter pelo menos 32 bytes (HS256); com menos que isso, ela não inicia. Gere uma chave aleatória uma vez e guarde nos [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), que ficam fora do repositório:
 
 ```powershell
 cd Authdoc
