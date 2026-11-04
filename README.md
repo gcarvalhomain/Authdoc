@@ -288,7 +288,7 @@ Content-Type: application/json
 - E-mail válido, de qualquer domínio e único na base, validado no cadastro e na atualização
 - E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
 - Nome obrigatório, com no máximo 100 caracteres
-- Senha com no mínimo 8 caracteres, confirmada no cadastro
+- Senha com no mínimo 8 caracteres, sem ser só espaços, confirmada no cadastro
 - Login e troca de senha limitados a 5 tentativas por minuto por IP, e refresh a 30; acima disso a API responde `429`
 - O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
 - Trocar a senha revoga todos os refresh tokens do usuário

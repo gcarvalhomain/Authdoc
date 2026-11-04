@@ -145,7 +145,7 @@ public static class EndpointsAuth
             return ApiErrors.NameTooLong;
         }
 
-        if (string.IsNullOrEmpty(request.Password))
+        if (string.IsNullOrWhiteSpace(request.Password))
         {
             return ApiErrors.PasswordRequired;
         }
@@ -165,7 +165,7 @@ public static class EndpointsAuth
             return ApiErrors.CurrentPasswordRequired;
         }
 
-        if (string.IsNullOrEmpty(request.NewPassword))
+        if (string.IsNullOrWhiteSpace(request.NewPassword))
         {
             return ApiErrors.PasswordRequired;
         }
