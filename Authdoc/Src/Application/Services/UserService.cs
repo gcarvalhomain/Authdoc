@@ -129,7 +129,7 @@ public class UserService
 
     public async Task<bool> EmailBelongsToAnotherUserAsync(Guid id, string email)
     {
-        
+
         return await _context.Users.AnyAsync(user => user.Email == email && user.Id != id);
     }
 }

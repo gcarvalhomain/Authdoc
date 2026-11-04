@@ -24,7 +24,7 @@ public static class ApiErrors
     // Authentication (401)
     public static readonly ErrorResponse InvalidCredentials = new() { Code = "INVALID_CREDENTIALS", Message = "Email or password is incorrect" };
     public static readonly ErrorResponse InvalidRefreshToken = new() { Code = "INVALID_REFRESH_TOKEN", Message = "Refresh token is invalid, expired or revoked" };
-    public static readonly ErrorResponse Unauthorized =new() { Code = "UNAUTHORIZED", Message = "A valid token is required" };
+    public static readonly ErrorResponse Unauthorized = new() { Code = "UNAUTHORIZED", Message = "A valid token is required" };
 
     // Authorization (403)
     public static readonly ErrorResponse Forbidden = new() { Code = "FORBIDDEN", Message = "You do not have permission to access this resource" };

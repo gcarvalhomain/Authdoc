@@ -11,7 +11,7 @@ public class ManagerDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
-    
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -26,7 +26,7 @@ public class ManagerDbContext : DbContext
             entity.Property(u => u.Email)
                 .HasMaxLength(254)
                 .IsRequired();
-            
+
             entity.HasIndex(u => u.Email)
                 .IsUnique();
         });
