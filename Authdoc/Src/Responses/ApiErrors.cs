@@ -31,6 +31,7 @@ public static class ApiErrors
 
     // Not found (404)
     public static readonly ErrorResponse UserNotFound = new() { Code = "USER_NOT_FOUND", Message = "User not found" };
+    public static readonly ErrorResponse DocumentNotFound = new() { Code = "DOCUMENT_NOT_FOUND", Message = "Document not found" };
 
     // Conflict (409)
     public static readonly ErrorResponse EmailAlreadyInUse = new() { Code = "EMAIL_ALREADY_IN_USE", Message = "Email is already in use" };
