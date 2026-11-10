@@ -10,6 +10,7 @@ public class ManagerDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; }
+    public DbSet<Document> Documents { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -30,7 +31,28 @@ public class ManagerDbContext : DbContext
             entity.HasIndex(u => u.Email)
                 .IsUnique();
         });
+        modelBuilder.Entity<Document>(entity =>
+        {
+            entity.Property(d => d.Type)
+                .HasMaxLength(Document.TypeMaxLength)
+                .IsRequired();
 
+            entity.Property(d => d.Name)
+                .HasMaxLength(Document.NameMaxLength)
+                .IsRequired();
+
+            entity.Property(d => d.Number)
+                .HasMaxLength(Document.NumberMaxLength)
+                .IsRequired();
+
+            entity.Property(d => d.Description)
+                .HasMaxLength(Document.DescriptionMaxLength);
+
+            entity.HasOne(d => d.Owner)
+                .WithMany()
+                .HasForeignKey(d => d.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.Property(t => t.TokenHash)
