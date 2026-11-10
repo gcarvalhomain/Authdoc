@@ -116,6 +116,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseRateLimiter();
+app.MapDocumentsEndpoints();
 app.MapAuthEndpoints();
 app.MapUserEndpoints();
 
