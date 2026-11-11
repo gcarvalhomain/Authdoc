@@ -395,6 +395,17 @@ Module rules:
 - Validity status calculated from `ExpiresAt`: `Valid`, `ExpiringSoon` (expires within 30 days) or `Expired`
 - A document without an expiry date is always `Valid`
 
+Validity status rule:
+
+| `ExpiresAt` | Status |
+|---|---|
+| Not set | `Valid` |
+| More than 30 days from today | `Valid` |
+| Today or within the next 30 days | `ExpiringSoon` |
+| Before today | `Expired` |
+
+The status is only returned when the document is read. No notification is sent in this stage.
+
 Progress:
 
 | Step | Status |
