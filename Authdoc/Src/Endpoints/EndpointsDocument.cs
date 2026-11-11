@@ -13,7 +13,7 @@ namespace Authdoc.Endpoints;
 
 public static class EndpointsDocument
 {
-    public static void MapDocumentsEndpoints(this WebApplication app)
+    public static void MapDocumentEndpoints(this WebApplication app)
     {
         app.MapPost("/api/documents", async (CreateDocumentRequest createDocumentRequest) =>
         {

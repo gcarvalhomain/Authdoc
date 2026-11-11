@@ -1,123 +1,148 @@
 # Authdoc
 
-API de autenticação e controle de acesso para uma plataforma de **organização de documentos de imigrantes**.
+**A personal document vault: everything organized in one place, ready when it is asked for.**
 
-Construída em **ASP.NET Core 10 (Minimal APIs)**, com **JWT**, **Entity Framework Core** e **SQL Server**.
+An application for **organizing and storing personal documents**. Today, what exists is the foundation: an identity and access control API built with **ASP.NET Core 10 (Minimal APIs)**, **JWT**, **Entity Framework Core** and **SQL Server**.
 
 ---
 
-## Visão do produto
+## The problem
 
-Imigrantes lidam com um volume grande de documentos críticos: passaporte, vistos, autorizações de residência, certidões e comprovantes. Esses documentos costumam estar espalhados e ter prazos de validade. O Authdoc tem como objetivo centralizar esses documentos com uma garantia central:
+In August 2026 I went to my immigration appointment in Portugal with every document on the official published list, all of them valid. At the counter, I was told that documents were missing, and those documents were not on that list.
 
-> **Cada usuário acessa exclusivamente os próprios documentos.**
+It is not possible to predict everything that may be asked for. What I can control is having every document I own stored, organized and with its expiry date in plain sight. That is how Authdoc was born.
 
-Por isso o projeto começa pela camada de identidade. Autenticação, papéis (roles) e emissão de tokens são a base sobre a qual o módulo de documentos será construído.
+## Product vision
 
-## Status atual
+Authdoc is a personal vault: each person keeps their own documents in one place, organized by type, and can find them at the moment they are asked for.
 
-| Módulo | Status |
+- **Organization:** each document has a type, a number, an issue date and an expiry date
+- **Private storage:** upload and access are restricted to the owner
+- **Deadline in plain sight:** each document shows a status calculated from the expiry date entered by the user: `Valid`, `ExpiringSoon` (expires within 30 days) or `Expired`
+
+The central guarantee of the project:
+
+> **Each user accesses only their own documents.**
+
+This rule has no exception: the `Admin` role manages accounts, but it does not give access to other users' documents.
+
+That is why the project starts with the identity layer. Authentication, roles and token issuing are the foundation on which the documents module is being built.
+
+### What Authdoc is not
+
+- **It does not say which documents a process requires.** It stores what the user has, not what an institution may ask for.
+- **It does not validate documents.** "Within the deadline" only means that the expiry date entered has not passed yet. The application does not check authenticity or whether the document will be accepted.
+- **It does not report anyone's legal status and it is not legal advice.**
+- **It is not a production service.** It is a portfolio project, with no public environment, and it must not receive real documents from third parties.
+
+## Current status
+
+| Module | Status |
 |---|---|
-| Autenticação (login, emissão de JWT) | ✅ Implementado |
-| Sessão (refresh token com rotação e revogação) | ✅ Implementado |
-| Troca de senha | ✅ Implementado |
-| Autorização por papel (`Admin` / `User`) | ✅ Implementado |
-| Gestão de usuários (CRUD administrativo e paginação) | ✅ Implementado |
-| Rate limiting em login, troca de senha e refresh | ✅ Implementado |
-| Tratamento global de exceções | ✅ Implementado |
-| Bootstrap automático (migrations + admin inicial) | ✅ Implementado |
-| Testes unitários e de integração | ✅ Implementado |
-| Pipeline de CI/CD (build, testes e deploy) | ✅ Implementado |
-| **Módulo de documentos** | 🚧 Próxima etapa |
-| Vínculo documento ↔ usuário com autorização por propriedade | 🚧 Próxima etapa |
+| Authentication (login, JWT issuing) | ✅ Implemented |
+| Session (refresh token with rotation and revocation) | ✅ Implemented |
+| Password change | ✅ Implemented |
+| Role-based authorization (`Admin` / `User`) | ✅ Implemented |
+| User management (administrative CRUD and pagination) | ✅ Implemented |
+| Rate limiting on login, password change and refresh | ✅ Implemented |
+| Global exception handling | ✅ Implemented |
+| Automatic bootstrap (migrations + initial admin) | ✅ Implemented |
+| Unit and integration tests | ✅ Implemented |
+| CI pipeline (build and tests) | ✅ Implemented |
+| Automatic deploy to Azure App Service | ⏸️ Configured, turned off until a production environment exists |
+| **Documents module** | 🚧 In development |
+| Document ↔ user link with ownership-based authorization | 🚧 In development |
+| Validity status (`Valid` / `ExpiringSoon` / `Expired`) | 🚧 In development |
+| Expiry notification (Workers + Outbox) | 📋 Planned |
+| Public sign-up (self-registration) | 📋 Planned |
 
-Hoje o Authdoc é uma **API de identidade e gestão de usuários**. O módulo de documentos vem em seguida e vai reutilizar toda a infraestrutura de autenticação já existente.
+Today Authdoc is an **identity and user management API**. No documents feature is available yet. From the documents module, the entity, the database table and the service with the owner filter already exist; the HTTP routes, the validity status and the file upload are still missing (see the [Roadmap](#roadmap)). The module reuses all the authentication infrastructure that already exists.
 
 ---
 
 ## Stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 |---|---|
 | Runtime | .NET 10 |
 | Web | ASP.NET Core Minimal APIs |
-| Persistência | Entity Framework Core 10 + SQL Server |
-| Autenticação | JWT Bearer (`Microsoft.AspNetCore.Authentication.JwtBearer`) |
-| Hash de senha | `IPasswordHasher<T>` do ASP.NET Core Identity (PBKDF2) |
-| Documentação | OpenAPI + [Scalar](https://scalar.com) |
-| Testes | xUnit + `WebApplicationFactory` + EF Core InMemory |
+| Persistence | Entity Framework Core 10 + SQL Server |
+| Authentication | JWT Bearer (`Microsoft.AspNetCore.Authentication.JwtBearer`) |
+| Password hashing | `IPasswordHasher<T>` from ASP.NET Core Identity (PBKDF2) |
+| Documentation | OpenAPI + [Scalar](https://scalar.com) |
+| Tests | xUnit + `WebApplicationFactory` + EF Core InMemory |
 | CI/CD | Azure Pipelines + Azure App Service |
 
-## Conceitos e fundamentos aplicados
+## Concepts and fundamentals applied
 
-- **Autenticação stateless com JWT:** o token é assinado com HMAC-SHA256 e carrega claims de identidade (`NameIdentifier`, `Name`, `Email`, `Role`). A API valida issuer, audience, tempo de vida e assinatura em cada requisição.
-- **Refresh token com rotação:** cada uso gera um novo token e revoga o anterior. No banco fica apenas o hash SHA-256.
-- **Autorização baseada em papéis (RBAC):** uma policy `Admin` protege as rotas administrativas.
-- **Hash de senha com salt:** as senhas nunca são persistidas em texto puro. O `PasswordHasher` gera hashes PBKDF2 com salt aleatório e versionamento de formato, o que permite fazer rehash quando o algoritmo evolui.
-- **Injeção de dependência e ciclo de vida de serviços:** services e `DbContext` são registrados como *Scoped* (um por requisição). No startup, um escopo explícito é criado para o bootstrap do banco.
-- **Code-first com EF Core Migrations:** o schema é versionado em código e aplicado automaticamente na inicialização.
-- **Separação em camadas:** endpoints (HTTP) → services (regras de negócio) → `DbContext` (persistência), com DTOs isolando o contrato da API do modelo de domínio.
-- **Identificadores GUID:** evitam enumeração sequencial de recursos, algo relevante quando os recursos forem documentos pessoais.
-- **Semântica HTTP:** `201 Created` com `Location`, `204 No Content` e `409 Conflict` para e-mail duplicado.
+- **Stateless authentication with JWT:** the token is signed with HMAC-SHA256 and carries identity claims (`NameIdentifier`, `Name`, `Email`, `Role`). The API validates issuer, audience, lifetime and signature on every request.
+- **Refresh token with rotation:** each use generates a new token and revokes the previous one. Only the SHA-256 hash is stored in the database.
+- **Role-based access control (RBAC):** an `Admin` policy protects the administrative routes.
+- **Salted password hashing:** passwords are never stored in plain text. The `PasswordHasher` generates PBKDF2 hashes with a random salt and format versioning, which allows a rehash when the algorithm evolves.
+- **Dependency injection and service lifetime:** services and the `DbContext` are registered as *Scoped* (one per request). At startup, an explicit scope is created for the database bootstrap.
+- **Code-first with EF Core Migrations:** the schema is versioned in code and applied automatically at startup.
+- **Layer separation:** endpoints (HTTP) → services (business rules) → `DbContext` (persistence), with DTOs isolating the API contract from the domain model.
+- **GUID identifiers:** they prevent sequential enumeration of resources, which matters when the resources are personal documents.
+- **HTTP semantics:** `201 Created` with `Location`, `204 No Content` and `409 Conflict` for a duplicate email.
 
 ---
 
-## Arquitetura
+## Architecture
 
 ```
-├── azure-pipelines.yml            # Pipeline de CI/CD
+├── azure-pipelines.yml            # CI/CD pipeline
 ├── Authdoc/
-│   ├── Program.cs                 # Composição: DI, JWT, policies, rate limiting, bootstrap, pipeline HTTP
+│   ├── Program.cs                 # Composition: DI, JWT, policies, rate limiting, bootstrap, HTTP pipeline
 │   └── Src/
-│       ├── Endpoints/             # Mapeamento HTTP (Minimal API) e validação de entrada
+│       ├── Endpoints/             # HTTP mapping (Minimal API) and input validation
 │       ├── Application/
-│       │   ├── DTOs/              # Contratos de request/response
-│       │   └── Services/          # AuthService, UserService (regras de negócio)
+│       │   ├── DTOs/              # Request/response contracts
+│       │   └── Services/          # AuthService, UserService, DocumentService (business rules)
 │       ├── Data/
-│       │   ├── ManagerDbContext.cs  # DbContext e configuração do modelo
-│       │   ├── DbInitializer.cs     # Migrations + seed do admin inicial
+│       │   ├── ManagerDbContext.cs  # DbContext and model configuration
+│       │   ├── DbInitializer.cs     # Migrations + initial admin seed
 │       │   └── Migrations/
-│       ├── Models/Entities/       # Entidades de domínio (User, UserRole, RefreshToken)
-│       ├── Responses/             # Formato de erro e tratamento global de exceções
-│       └── Validators/            # Validação de e-mail
+│       ├── Models/Entities/       # Domain entities (User, UserRole, RefreshToken, Document)
+│       ├── Responses/             # Error format and global exception handling
+│       └── Validators/            # Email validation
 └── Authdoc.Tests/
-    ├── Integration/               # API completa via HTTP
-    └── *.cs                       # Testes unitários
+    ├── Integration/               # Full API over HTTP
+    └── *.cs                       # Unit tests
 ```
 
-Fluxo de uma requisição autenticada:
+Flow of an authenticated request:
 
 ```mermaid
 sequenceDiagram
-    participant C as Cliente
+    participant C as Client
     participant A as API (JWT middleware)
     participant E as Endpoint
     participant S as Service
     participant D as SQL Server
 
     C->>A: Authorization: Bearer <token>
-    A->>A: Valida assinatura, issuer, audience, expiração
-    A->>E: ClaimsPrincipal + checagem de policy
-    E->>S: DTO validado
+    A->>A: Validates signature, issuer, audience, expiration
+    A->>E: ClaimsPrincipal + policy check
+    E->>S: Validated DTO
     S->>D: EF Core
-    D-->>S: Entidade
+    D-->>S: Entity
     S-->>E: Response DTO
     E-->>C: 200 / 201 / 204 / 4xx
 ```
 
 ---
 
-## Como executar
+## How to run
 
-### Pré-requisitos
+### Prerequisites
 
 - [.NET SDK 10](https://dotnet.microsoft.com/download)
-- SQL Server (a configuração padrão aponta para `localhost\SQLEXPRESS` com autenticação integrada do Windows)
-- Opcional: `dotnet tool install --global dotnet-ef`, para gerenciar migrations
+- SQL Server (the default configuration points to `localhost\SQLEXPRESS` with Windows integrated authentication)
+- Optional: `dotnet tool install --global dotnet-ef`, to manage migrations
 
-### Configuração
+### Configuration
 
-As configurações não sensíveis ficam em `Authdoc/appsettings.json`:
+The non-sensitive settings are in `Authdoc/appsettings.json`:
 
 ```json
 {
@@ -137,17 +162,17 @@ As configurações não sensíveis ficam em `Authdoc/appsettings.json`:
 }
 ```
 
-Em desenvolvimento, os segredos vêm dos User Secrets. Fora de desenvolvimento, a API precisa destas variáveis de ambiente:
+In development, the secrets come from User Secrets. Outside development, the API needs these environment variables:
 
-| Configuração | Variável de ambiente | Obrigatória |
+| Setting | Environment variable | Required |
 |---|---|---|
-| Chave de assinatura do JWT | `Jwt__Key` | Sempre |
-| Senha do admin inicial | `SeedData__AdminPassword` | Enquanto o admin inicial não existir |
-| Connection string do banco | `ConnectionStrings__DefaultConnection` | Sempre, pois o valor padrão só serve para a máquina local |
+| JWT signing key | `Jwt__Key` | Always |
+| Initial admin password | `SeedData__AdminPassword` | While the initial admin does not exist |
+| Database connection string | `ConnectionStrings__DefaultConnection` | Always, because the default value only works on the local machine |
 
-### Chave de assinatura do JWT
+### JWT signing key
 
-A chave de assinatura é um segredo, por isso **não** fica no `appsettings.json`. A API lê o valor de `Jwt:Key`, que precisa ter pelo menos 32 bytes (HS256); com menos que isso, ela não inicia. Gere uma chave aleatória uma vez e guarde nos [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), que ficam fora do repositório:
+The signing key is a secret, so it is **not** in `appsettings.json`. The API reads the value of `Jwt:Key`, which must have at least 32 bytes (HS256); with less than that, the API does not start. Generate a random key once and store it in [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets), which stay outside the repository:
 
 ```powershell
 cd Authdoc
@@ -163,84 +188,94 @@ dotnet user-secrets set "Jwt:Key" ([Convert]::ToBase64String($bytes))
 dotnet user-secrets set "Jwt:Key" "$(openssl rand -base64 64 | tr -d '\n')"
 ```
 
-### Senha do admin inicial
+### Initial admin password
 
-A senha do admin inicial também é um segredo. Escolha uma senha forte e guarde em `SeedData:AdminPassword`:
+The initial admin password is also a secret. Choose a strong password and store it in `SeedData:AdminPassword`:
 
 ```powershell
 cd Authdoc
-dotnet user-secrets set "SeedData:AdminPassword" "<sua-senha-forte>"
+dotnet user-secrets set "SeedData:AdminPassword" "<your-strong-password>"
 ```
 
-Ela só é necessária quando o admin inicial é criado (veja [Bootstrap](#bootstrap-o-primeiro-usuário)). Se o admin ainda não existir e a configuração estiver ausente, a API falha na inicialização.
+It is only needed when the initial admin is created (see [Bootstrap](#bootstrap-the-first-user)). If the admin does not exist yet and the setting is missing, the API fails at startup.
 
-### Subindo a API
+### Starting the API
 
 ```bash
-git clone <url-do-repositorio>
+git clone <repository-url>
 cd Authdoc
 dotnet run --project Authdoc
 ```
 
 - API: `http://localhost:5297`
-- Documentação interativa (Scalar, apenas em `Development`): `http://localhost:5297/scalar`
+- Interactive documentation (Scalar, only in `Development`): `http://localhost:5297/scalar`
 
-### Rodando os testes
+### Running the tests
 
 ```bash
 dotnet test
 ```
 
-| Tipo | O que cobre |
+| Type | What it covers |
 |---|---|
-| Unitários | `EmailValidator` e as regras do `UserService` (último admin, exclusão, troca de papel) |
-| Integração | A API inteira via HTTP com `WebApplicationFactory`: autenticação, refresh token, troca de senha, usuários, paginação, rate limiting e códigos de erro |
+| Unit | `EmailValidator`, the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
+| Integration | The whole API over HTTP with `WebApplicationFactory`: authentication, refresh token, password change, users, pagination, rate limiting and error codes |
 
-Os testes usam um banco **em memória** e configuração própria, então não precisam de SQL Server nem de User Secrets.
+The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
 
 ---
 
 ## CI/CD
 
-A pipeline fica em `azure-pipelines.yml` e roda a cada alteração na branch `main`:
+The pipeline is in `azure-pipelines.yml` and runs on every change to the `main` branch:
 
-1. Restaura as dependências
-2. Compila em `Release`
-3. Executa os testes; se algum falhar, o deploy não acontece
-4. Publica a API e gera o artefato `drop`
-5. Faz o deploy no Azure App Service, apenas na `main` e com a variável `deployEnabled` em `'true'`
+1. Restores the dependencies
+2. Builds in `Release`
+3. Runs the tests; if any test fails, the deploy does not happen
+4. Publishes the API and generates the `drop` artifact
+5. Deploys to Azure App Service, only on `main` and with the `deployEnabled` variable set to `'true'`
 
-O deploy está desligado (`deployEnabled: 'false'`) até o banco e as configurações de produção existirem. As demais etapas continuam rodando.
+The deploy is turned off (`deployEnabled: 'false'`) until the production database and settings exist. The other steps keep running.
 
 ---
 
-## Bootstrap: o primeiro usuário
+## How I use AI in the project
 
-O cadastro de usuários é uma operação **administrativa**: o endpoint de registro exige a policy `Admin`. Isso cria um problema clássico de "ovo e galinha": sem um admin, ninguém consegue cadastrar ninguém.
+I use AI agents in the development, with fixed rules:
 
-O `DbInitializer` resolve isso na inicialização da aplicação:
+- Branches, code and commits follow a standard defined by me, applied by skills and subagents dedicated to specific tasks
+- Every change is reviewed by me before the merge
+- I also use AI to study the concepts behind what was generated: the goal is to be able to explain every decision described in this README
 
-1. **Aplica as migrations pendentes** (`Database.MigrateAsync()`). O banco é criado se ainda não existir.
-2. **Verifica se já existe algum usuário com papel `Admin`.** Se existir, não faz nada. A operação é idempotente e segura para rodar a cada startup.
-3. **Se existe um usuário com o e-mail do admin padrão, mas sem o papel**, promove esse usuário a `Admin`.
-4. **Caso contrário, cria o admin inicial**, com a senha passando pelo mesmo `IPasswordHasher` usado no fluxo de registro e login.
+---
 
-Credenciais iniciais:
+## Bootstrap: the first user
 
-| E-mail | Senha |
+Registering users is an **administrative** operation: the register endpoint requires the `Admin` policy. This creates a classic "chicken and egg" problem: without an admin, nobody can register anybody.
+
+The `DbInitializer` solves this when the application starts:
+
+1. **Applies the pending migrations** (`Database.MigrateAsync()`). The database is created if it does not exist yet.
+2. **Checks whether any user with the `Admin` role already exists.** If one exists, it does nothing. The operation is idempotent and safe to run at every startup.
+3. **If a user with the default admin email exists, but without the role**, it promotes that user to `Admin`.
+4. **Otherwise, it creates the initial admin**, with the password going through the same `IPasswordHasher` used in the register and login flow.
+
+Initial credentials:
+
+| Email | Password |
 |---|---|
-| `admin@system.com` | O valor configurado em `SeedData:AdminPassword` (veja [Senha do admin inicial](#senha-do-admin-inicial)) |
+| `admin@system.com` | The value configured in `SeedData:AdminPassword` (see [Initial admin password](#initial-admin-password)) |
 
-### Primeiro fluxo completo
+### First complete flow
 
 ```http
-### 1. Login como admin
+### 1. Log in as admin
 POST http://localhost:5297/api/auth/login
 Content-Type: application/json
 
 { "email": "admin@system.com", "password": "<SeedData:AdminPassword>" }
 
-### 2. Cadastrar um usuário (use o token retornado no passo 1)
+### 2. Register a user (use the token returned in step 1)
 POST http://localhost:5297/api/auth/register
 Authorization: Bearer <token>
 Content-Type: application/json
@@ -248,15 +283,15 @@ Content-Type: application/json
 {
   "name": "Maria Silva",
   "email": "maria@gmail.com",
-  "password": "senha123",
-  "confirmationPassword": "senha123"
+  "password": "password123",
+  "confirmationPassword": "password123"
 }
 
-### 3. Login com o novo usuário
+### 3. Log in with the new user
 POST http://localhost:5297/api/auth/login
 Content-Type: application/json
 
-{ "email": "maria@gmail.com", "password": "senha123" }
+{ "email": "maria@gmail.com", "password": "password123" }
 ```
 
 ---
@@ -265,71 +300,71 @@ Content-Type: application/json
 
 ### Auth
 
-| Método | Rota | Acesso | Descrição |
+| Method | Route | Access | Description |
 |---|---|---|---|
-| `POST` | `/api/auth/login` | Público | Autentica e retorna JWT, refresh token, expirações e dados do usuário |
-| `POST` | `/api/auth/refresh` | Público | Troca um refresh token válido por um novo par de tokens |
-| `PUT` | `/api/auth/password` | Autenticado | Troca a própria senha (encerra as outras sessões) |
-| `POST` | `/api/auth/register` | Admin | Cadastra um novo usuário |
-| `GET` | `/api/auth/me` | Autenticado | Retorna a identidade contida no token, incluindo o papel |
+| `POST` | `/api/auth/login` | Public | Authenticates and returns the JWT, the refresh token, the expirations and the user data |
+| `POST` | `/api/auth/refresh` | Public | Exchanges a valid refresh token for a new pair of tokens |
+| `PUT` | `/api/auth/password` | Authenticated | Changes the user's own password (ends the other sessions) |
+| `POST` | `/api/auth/register` | Admin | Registers a new user |
+| `GET` | `/api/auth/me` | Authenticated | Returns the identity inside the token, including the role |
 
 ### Users
 
-| Método | Rota | Acesso | Descrição |
+| Method | Route | Access | Description |
 |---|---|---|---|
-| `GET` | `/api/users?page=1&pageSize=10` | Admin | Lista usuários com paginação (`pageSize` de 1 a 100) |
-| `GET` | `/api/users/{id}` | Admin | Consulta um usuário |
-| `PUT` | `/api/users/{id}` | Admin | Atualiza nome e e-mail |
-| `PATCH` | `/api/users/{id}/role` | Admin | Altera o papel do usuário (`Admin` ou `User`) |
-| `DELETE` | `/api/users/{id}` | Admin | Remove um usuário |
+| `GET` | `/api/users?page=1&pageSize=10` | Admin | Lists users with pagination (`pageSize` from 1 to 100) |
+| `GET` | `/api/users/{id}` | Admin | Returns one user |
+| `PUT` | `/api/users/{id}` | Admin | Updates name and email |
+| `PATCH` | `/api/users/{id}/role` | Admin | Changes the user's role (`Admin` or `User`) |
+| `DELETE` | `/api/users/{id}` | Admin | Removes a user |
 
-### Regras de negócio
+### Business rules
 
-- E-mail válido, de qualquer domínio e único na base, validado no cadastro e na atualização
-- E-mail normalizado (sem espaços nas pontas e em minúsculas) antes de validar, buscar ou salvar
-- Nome obrigatório, com no máximo 100 caracteres
-- Senha com no mínimo 8 caracteres, sem ser só espaços, confirmada no cadastro
-- Login e troca de senha limitados a 5 tentativas por minuto por IP, e refresh a 30; acima disso a API responde `429`
-- O refresh token vale 7 dias, só pode ser usado uma vez (cada uso gera um novo) e é guardado apenas como hash SHA-256
-- Trocar a senha revoga todos os refresh tokens do usuário
-- Papel (`Role`) não é alterável pelo endpoint de atualização, o que evita escalonamento de privilégio via payload
-- Papel alterado apenas por `PATCH /api/users/{id}/role`, com corpo `{ "role": "Admin" }` ou `{ "role": "User" }`
-- Uma mudança de papel passa a valer no próximo refresh ou login, pois o papel fica gravado no JWT
-- Um admin não pode alterar o próprio papel, e o último admin do sistema não pode ser rebaixado
-- Um admin não pode excluir o próprio usuário, e o último admin do sistema não pode ser excluído
-- Exceções inesperadas são interceptadas e registradas de forma centralizada pelo `IExceptionHandler`, sem expor detalhes internos ao cliente
+- The email must be valid, from any domain, and unique in the database; it is validated on registration and on update
+- The email is normalized (trimmed and lowercased) before validating, searching or saving
+- The name is required, with at most 100 characters
+- The password has at least 8 characters, cannot be only spaces, and is confirmed on registration
+- Login and password change are limited to 5 attempts per minute per IP, and refresh to 30; above that the API responds with `429`
+- The refresh token is valid for 7 days, can be used only once (each use generates a new one) and is stored only as a SHA-256 hash
+- Changing the password revokes all the user's refresh tokens
+- The role cannot be changed through the update endpoint, which prevents privilege escalation through the payload
+- The role is changed only through `PATCH /api/users/{id}/role`, with the body `{ "role": "Admin" }` or `{ "role": "User" }`
+- A role change takes effect on the next refresh or login, because the role is stored in the JWT
+- An admin cannot change their own role, and the last admin of the system cannot be demoted
+- An admin cannot delete their own user, and the last admin of the system cannot be deleted
+- Unexpected exceptions are intercepted and logged in one central place by the `IExceptionHandler`, without exposing internal details to the client
 
-### Formato de erro
+### Error format
 
-As respostas de erro da API têm o mesmo formato, com um `code` estável (para o cliente tratar) e uma `message` legível:
+The API error responses have the same format, with a stable `code` (for the client to handle) and a readable `message`:
 
 ```json
 { "code": "EMAIL_INVALID", "message": "Email is invalid" }
 ```
 
-| Status | Códigos |
+| Status | Codes |
 |---|---|
 | `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `NAME_TOO_LONG`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
 | `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
-| `404` | `USER_NOT_FOUND` |
+| `404` | `USER_NOT_FOUND`, `DOCUMENT_NOT_FOUND` |
 | `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
 | `429` | `TOO_MANY_REQUESTS` |
 | `500` | `INTERNAL_ERROR` |
 
-Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`.
+The codes are centralized in `Src/Responses/ApiErrors.cs`.
 
 ---
 
 ## Roadmap
 
-### Próximo: módulo de documentos
+### In development: documents module
 
-O objetivo é associar cada documento ao seu dono no banco e aplicar **autorização baseada em recurso**: além de estar autenticado, o usuário só lê, altera ou remove documentos que lhe pertencem.
+The goal is to link each document to its owner in the database and apply **resource-based authorization**: besides being authenticated, the user only reads, changes or removes documents that belong to them.
 
 ```mermaid
 erDiagram
-    USER ||--o{ DOCUMENT : possui
+    USER ||--o{ DOCUMENT : owns
     USER {
         guid Id PK
         string Name
@@ -340,44 +375,105 @@ erDiagram
         guid Id PK
         guid OwnerId FK
         string Type
+        string Name
         string Number
+        string Description
         date IssuedAt
         date ExpiresAt
-        string StoragePath
+        string StoragePath "planned, comes with the upload"
     }
 ```
 
-- Entidade `Document` com chave estrangeira `OwnerId → User.Id`
-- O `OwnerId` sempre vem da claim `NameIdentifier` do token, nunca do corpo da requisição
-- Consultas filtradas pelo dono (`WHERE OwnerId = @currentUser`), com `404` para documentos de terceiros, sem revelar a existência deles
-- Upload e armazenamento de arquivos desacoplados da API
-- Alertas de vencimento de documentos
+Module rules:
 
-### Evolução da base
+- `Document` entity with the foreign key `OwnerId → User.Id`; deleting a user deletes their documents
+- The `OwnerId` always comes from the `NameIdentifier` claim of the token, never from the request body
+- Queries are filtered by owner (`WHERE OwnerId = @currentUser`), with `404` for other users' documents, without revealing that they exist
+- The `Admin` role does not give access to other users' documents
+- File storage behind an interface, with a local disk implementation, so the API does not depend on the physical location
+- Upload restricted to PDF, JPG and PNG, with at most 10 MB
+- Validity status calculated from `ExpiresAt`: `Valid`, `ExpiringSoon` (expires within 30 days) or `Expired`
+- A document without an expiry date is always `Valid`
 
-- [ ] Autorização por recurso (`IAuthorizationHandler`) para documentos
-- [ ] Validação centralizada (FluentValidation)
+Validity status rule:
+
+| `ExpiresAt` | Status |
+|---|---|
+| Not set | `Valid` |
+| More than 30 days from today | `Valid` |
+| Today or within the next 30 days | `ExpiringSoon` |
+| Before today | `Expired` |
+
+The status is only returned when the document is read. No notification is sent in this stage.
+
+Progress:
+
+| Step | Status |
+|---|---|
+| `Document` entity, `Documents` table and relation to `User` | ✅ Done |
+| Request and response DTOs | ✅ Done |
+| `DocumentService` (create, list, get, update and delete, always filtered by owner) with unit tests | ✅ Done |
+| HTTP routes with input validation | 🚧 In development |
+| Integration tests for the routes | 📋 To do |
+| Validity status | 📋 To do |
+| File upload and storage | 📋 To do |
+
+Planned routes, all authenticated and restricted to the user's own documents:
+
+| Method | Route | Description |
+|---|---|---|
+| `POST` | `/api/documents` | Registers a document |
+| `GET` | `/api/documents?page=1&pageSize=10` | Lists the user's own documents with pagination |
+| `GET` | `/api/documents/{id}` | Returns one document |
+| `PUT` | `/api/documents/{id}` | Updates a document |
+| `DELETE` | `/api/documents/{id}` | Removes a document |
+
+Definition of done for the module:
+
+1. Send a document (file, type, number, issue date and expiry date)
+2. List and read only the user's own documents
+3. Reading, changing or removing another user's document returns `404`
+4. Each document returned carries the validity status
+5. Integration tests for points 2 and 3 and unit tests for the status rule
+
+### Later
+
+- **Public sign-up:** today registration is an administrative operation (see [Bootstrap](#bootstrap-the-first-user)), so a person cannot create their own account yet
+- **Expiry notification:** actively warn the user, with Workers and Outbox. In this stage the deadline appears only as a status when the document is read
+
+### Open question
+
+A point that needs a decision before any real use:
+
+| Question | Why it matters |
+|---|---|
+| Sensitive personal data (GDPR) | Passports and residence permits require encryption at rest, a retention policy and deletion at the request of the data subject |
+
+### Base evolution
+
+- [ ] Resource-based authorization for documents (owner filter in `DocumentService` ready; routes in development)
+- [ ] Centralized validation (FluentValidation)
 - [ ] Docker Compose (API + SQL Server)
-- [x] Pipeline de build, testes e deploy
-- [x] Índice único de e-mail e limites de tamanho em `Email` e `Name`
-- [x] Tratamento global de exceções
-- [x] Refresh token e revogação de sessão
-- [x] Rate limiting no login
-- [x] Listagem paginada de usuários
-- [x] Segredos via User Secrets / variáveis de ambiente
-- [x] Testes unitários e de integração (xUnit + `WebApplicationFactory`)
+- [x] Build and test pipeline (deploy configured, turned off)
+- [x] Unique email index and length limits on `Email` and `Name`
+- [x] Global exception handling
+- [x] Refresh token and session revocation
+- [x] Rate limiting on login
+- [x] Paginated user list
+- [x] Secrets through User Secrets / environment variables
+- [x] Unit and integration tests (xUnit + `WebApplicationFactory`)
 
 ---
 
-## Segurança
+## Security
 
-A chave JWT e a senha do admin inicial não são versionadas: em desenvolvimento elas vêm dos User Secrets e, nos demais ambientes, de variáveis de ambiente (veja [Configuração](#configuração)). Em qualquer ambiente real, a senha do admin deve ser trocada no primeiro acesso.
+The JWT key and the initial admin password are not versioned: in development they come from User Secrets and, in the other environments, from environment variables (see [Configuration](#configuration)). In any real environment, the admin password must be changed on the first access.
 
-### Limitações conhecidas
+### Known limitations
 
-| Limitação | Impacto | Possível solução |
+| Limitation | Impact | Possible solution |
 |---|---|---|
-| O JWT continua válido até expirar | Um usuário rebaixado ou excluído mantém o acesso antigo por até `Jwt:ExpirationInMinutes`. O refresh já devolve o papel novo, mas o token antigo segue válido até vencer | Reduzir `Jwt:ExpirationInMinutes` (o refresh evita logins repetidos) ou verificar um *security stamp* a cada requisição |
-| A regra do último admin não é atômica | Duas requisições simultâneas podem rebaixar ou excluir os dois últimos admins | Transação com isolamento adequado ou trava no banco |
-| O rate limiting fica na memória e é por IP | Zera quando a API reinicia, não é compartilhado entre instâncias e, atrás de um proxy, todos podem parecer o mesmo IP | Rate limiting distribuído (ex.: Redis) e configurar `ForwardedHeaders` |
-| Os testes de integração usam banco em memória | O índice único de e-mail não é verificado pelo banco nos testes | Testes com SQL Server real (ex.: Testcontainers) |
+| The JWT stays valid until it expires | A demoted or deleted user keeps the old access for up to `Jwt:ExpirationInMinutes`. The refresh already returns the new role, but the old token stays valid until it expires | Reduce `Jwt:ExpirationInMinutes` (the refresh avoids repeated logins) or check a *security stamp* on every request |
+| The last admin rule is not atomic | Two simultaneous requests can demote or delete the last two admins | A transaction with the right isolation level or a database lock |
+| Rate limiting is in memory and per IP | It resets when the API restarts, it is not shared between instances and, behind a proxy, everyone can look like the same IP | Distributed rate limiting (e.g. Redis) and `ForwardedHeaders` configuration |
+| Integration tests use an in-memory database | The unique email index is not checked by the database in the tests | Tests with a real SQL Server (e.g. Testcontainers) |

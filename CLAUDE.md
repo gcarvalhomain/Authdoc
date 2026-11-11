@@ -72,6 +72,6 @@
 - Do not change `deployEnabled` or the pipeline without asking.
 
 ## Documentation
-- README is in Portuguese. Code, comments, commits and error messages are in English.
+- README, code, comments, commits and error messages are in English.
 - When endpoints, error codes, settings or business rules change,
   update the README in the same PR.
