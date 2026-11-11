@@ -444,4 +444,194 @@ public class DocumentEndpointsTests : IClassFixture<AuthdocApiFactory>
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.Equal("UNAUTHORIZED", error!.Code);
     }
+
+    [Fact]
+    public async Task UpdateDocument_WithValidRequest_Returns200WithUpdatedDocument()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("update-valid@gmail.com");
+        var created = await client.CreateDocumentAsync();
+        var request = new Dictionary<string, object?>
+        {
+            ["type"] = "Visa",
+            ["name"] = "Work visa",
+            ["number"] = "V-0042",
+            ["description"] = "Valid for one employer",
+            ["issuedAt"] = "2025-03-01"
+        };
+
+        // Act
+        var response = await client.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var document = await response.Content.ReadFromJsonAsync<DocumentResponse>();
+        Assert.Equal(created.Id, document!.Id);
+        Assert.Equal("Visa", document.Type);
+        Assert.Equal("Work visa", document.Name);
+        Assert.Equal("V-0042", document.Number);
+        Assert.Equal("Valid for one employer", document.Description);
+        Assert.Equal(new DateOnly(2025, 3, 1), document.IssuedAt);
+        Assert.Null(document.ExpiresAt);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WithValidRequest_SavesTheChanges()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("update-saved@gmail.com");
+        var created = await client.CreateDocumentAsync();
+        var request = ValidDocument();
+        request["name"] = "Renewed passport";
+
+        // Act
+        await client.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        var saved = await client.GetFromJsonAsync<DocumentResponse>($"/api/documents/{created.Id}");
+        Assert.Equal("Renewed passport", saved!.Name);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WithSpacesAroundText_SavesTrimmedValues()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("update-trim@gmail.com");
+        var created = await client.CreateDocumentAsync();
+        var request = ValidDocument();
+        request["name"] = "  Renewed passport  ";
+        request["description"] = "   ";
+
+        // Act
+        var response = await client.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var document = await response.Content.ReadFromJsonAsync<DocumentResponse>();
+        Assert.Equal("Renewed passport", document!.Name);
+        Assert.Null(document.Description);
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidTextFields))]
+    public async Task UpdateDocument_WithInvalidTextField_Returns400WithFieldError(string field, string value, string expectedCode)
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync($"update-{Guid.NewGuid()}@gmail.com");
+        var created = await client.CreateDocumentAsync();
+        var request = ValidDocument();
+        request[field] = value;
+
+        // Act
+        var response = await client.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal(expectedCode, error!.Code);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WithoutIssuedAt_Returns400IssuedAtRequired()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("update-no-issued@gmail.com");
+        var created = await client.CreateDocumentAsync();
+        var request = ValidDocument();
+        request.Remove("issuedAt");
+
+        // Act
+        var response = await client.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("ISSUED_AT_REQUIRED", error!.Code);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WithExpiresAtBeforeIssuedAt_Returns400ExpiresAtBeforeIssuedAt()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("update-expires-before@gmail.com");
+        var created = await client.CreateDocumentAsync();
+        var request = ValidDocument();
+        request["issuedAt"] = "2024-01-10";
+        request["expiresAt"] = "2024-01-09";
+
+        // Act
+        var response = await client.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("EXPIRES_AT_BEFORE_ISSUED_AT", error!.Code);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WhenDocumentDoesNotExist_Returns404DocumentNotFound()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("update-missing@gmail.com");
+
+        // Act
+        var response = await client.PutAsJsonAsync($"/api/documents/{Guid.NewGuid()}", ValidDocument());
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("DOCUMENT_NOT_FOUND", error!.Code);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WhenDocumentBelongsToAnotherUser_Returns404DocumentNotFound()
+    {
+        // Arrange
+        var (ownerClient, _) = await _factory.CreateUserClientAsync("update-owner@gmail.com");
+        var (otherClient, _) = await _factory.CreateUserClientAsync("update-other@gmail.com");
+        var created = await ownerClient.CreateDocumentAsync();
+        var request = ValidDocument();
+        request["name"] = "Changed by another user";
+
+        // Act
+        var response = await otherClient.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("DOCUMENT_NOT_FOUND", error!.Code);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WhenDocumentBelongsToAnotherUser_KeepsTheDocumentUnchanged()
+    {
+        // Arrange
+        var (ownerClient, _) = await _factory.CreateUserClientAsync("update-keep-owner@gmail.com");
+        var (otherClient, _) = await _factory.CreateUserClientAsync("update-keep-other@gmail.com");
+        var created = await ownerClient.CreateDocumentAsync("My passport");
+        var request = ValidDocument();
+        request["name"] = "Changed by another user";
+
+        // Act
+        await otherClient.PutAsJsonAsync($"/api/documents/{created.Id}", request);
+
+        // Assert
+        var saved = await ownerClient.GetFromJsonAsync<DocumentResponse>($"/api/documents/{created.Id}");
+        Assert.Equal("My passport", saved!.Name);
+    }
+
+    [Fact]
+    public async Task UpdateDocument_WithoutToken_Returns401Unauthorized()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.PutAsJsonAsync($"/api/documents/{Guid.NewGuid()}", ValidDocument());
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("UNAUTHORIZED", error!.Code);
+    }
 }

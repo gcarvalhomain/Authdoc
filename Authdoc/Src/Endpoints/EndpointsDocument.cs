@@ -76,6 +76,33 @@ public static class EndpointsDocument
                 return Results.Ok(documents);
             })
             .RequireAuthorization();
+        app.MapPut("/api/documents/{id}", async (Guid id, UpdateDocumentRequest request, ClaimsPrincipal currentUser, DocumentService documentService) =>
+            {
+                request.Type = NormalizeText(request.Type);
+                request.Name = NormalizeText(request.Name);
+                request.Number = NormalizeText(request.Number);
+                request.Description = NormalizeOptionalText(request.Description);
+
+                var validationError = Validate(request.Type, request.Name, request.Number, request.Description, request.IssuedAt, request.ExpiresAt);
+                if (validationError is not null)
+                {
+                    return Results.BadRequest(validationError);
+                }
+
+                if (!TryGetUserId(currentUser, out var ownerId))
+                {
+                    return Results.Json(ApiErrors.Unauthorized, statusCode: StatusCodes.Status401Unauthorized);
+                }
+
+                var document = await documentService.UpdateAsync(ownerId, id, request);
+                if (document is null)
+                {
+                    return Results.NotFound(ApiErrors.DocumentNotFound);
+                }
+
+                return Results.Ok(document);
+            })
+            .RequireAuthorization();
     }
 
     private static bool TryGetUserId(ClaimsPrincipal currentUser, out Guid userId)
