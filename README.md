@@ -56,7 +56,7 @@ Por isso o projeto começa pela camada de identidade. Autenticação, papéis (r
 | Notificação de vencimento (Workers + Outbox) | 📋 Planejado |
 | Cadastro público (auto-registro) | 📋 Planejado |
 
-Hoje o Authdoc é uma **API de identidade e gestão de usuários**. Nenhuma funcionalidade de documentos está disponível ainda: o módulo está em desenvolvimento e reutiliza toda a infraestrutura de autenticação já existente.
+Hoje o Authdoc é uma **API de identidade e gestão de usuários**. Nenhuma funcionalidade de documentos está disponível ainda. Do módulo de documentos já existem a entidade, a tabela no banco e o serviço com filtro por dono; faltam as rotas HTTP, o status de validade e o upload de arquivos (veja o [Roadmap](#roadmap)). O módulo reutiliza toda a infraestrutura de autenticação já existente.
 
 ---
 
@@ -97,12 +97,12 @@ Hoje o Authdoc é uma **API de identidade e gestão de usuários**. Nenhuma func
 │       ├── Endpoints/             # Mapeamento HTTP (Minimal API) e validação de entrada
 │       ├── Application/
 │       │   ├── DTOs/              # Contratos de request/response
-│       │   └── Services/          # AuthService, UserService (regras de negócio)
+│       │   └── Services/          # AuthService, UserService, DocumentService (regras de negócio)
 │       ├── Data/
 │       │   ├── ManagerDbContext.cs  # DbContext e configuração do modelo
 │       │   ├── DbInitializer.cs     # Migrations + seed do admin inicial
 │       │   └── Migrations/
-│       ├── Models/Entities/       # Entidades de domínio (User, UserRole, RefreshToken)
+│       ├── Models/Entities/       # Entidades de domínio (User, UserRole, RefreshToken, Document)
 │       ├── Responses/             # Formato de erro e tratamento global de exceções
 │       └── Validators/            # Validação de e-mail
 └── Authdoc.Tests/
@@ -218,7 +218,7 @@ dotnet test
 
 | Tipo | O que cobre |
 |---|---|
-| Unitários | `EmailValidator` e as regras do `UserService` (último admin, exclusão, troca de papel) |
+| Unitários | `EmailValidator`, as regras do `UserService` (último admin, exclusão, troca de papel) e as do `DocumentService` (cada operação só alcança os documentos do próprio dono) |
 | Integração | A API inteira via HTTP com `WebApplicationFactory`: autenticação, refresh token, troca de senha, usuários, paginação, rate limiting e códigos de erro |
 
 Os testes usam um banco **em memória** e configuração própria, então não precisam de SQL Server nem de User Secrets.
@@ -347,7 +347,7 @@ As respostas de erro da API têm o mesmo formato, com um `code` estável (para o
 | `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `NAME_TOO_LONG`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID` |
 | `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
-| `404` | `USER_NOT_FOUND` |
+| `404` | `USER_NOT_FOUND`, `DOCUMENT_NOT_FOUND` |
 | `409` | `EMAIL_ALREADY_IN_USE`, `LAST_ADMIN` |
 | `429` | `TOO_MANY_REQUESTS` |
 | `500` | `INTERNAL_ERROR` |
@@ -375,20 +375,46 @@ erDiagram
         guid Id PK
         guid OwnerId FK
         string Type
+        string Name
         string Number
+        string Description
         date IssuedAt
         date ExpiresAt
-        string StoragePath
+        string StoragePath "planejado, entra com o upload"
     }
 ```
 
-- Entidade `Document` com chave estrangeira `OwnerId → User.Id`
+Regras do módulo:
+
+- Entidade `Document` com chave estrangeira `OwnerId → User.Id`; excluir um usuário exclui os documentos dele
 - O `OwnerId` sempre vem da claim `NameIdentifier` do token, nunca do corpo da requisição
 - Consultas filtradas pelo dono (`WHERE OwnerId = @currentUser`), com `404` para documentos de terceiros, sem revelar a existência deles
 - O papel `Admin` não dá acesso a documentos de outros usuários
 - Armazenamento de arquivos atrás de uma interface, com uma implementação em disco local, para a API não depender do local físico
 - Upload restrito a PDF, JPG e PNG, com no máximo 10 MB
 - Status de validade calculado a partir de `ExpiresAt`: `Valid`, `ExpiringSoon` (vence em até 30 dias) ou `Expired`
+
+Andamento:
+
+| Etapa | Status |
+|---|---|
+| Entidade `Document`, tabela `Documents` e relação com `User` | ✅ Feito |
+| DTOs de entrada e saída | ✅ Feito |
+| `DocumentService` (criar, listar, consultar, alterar e remover, sempre filtrando pelo dono) com testes unitários | ✅ Feito |
+| Rotas HTTP com validação de entrada | 🚧 Em desenvolvimento |
+| Testes de integração das rotas | 📋 A fazer |
+| Status de validade | 📋 A fazer |
+| Upload e armazenamento de arquivos | 📋 A fazer |
+
+Rotas planejadas, todas autenticadas e restritas aos documentos do próprio usuário:
+
+| Método | Rota | Descrição |
+|---|---|---|
+| `POST` | `/api/documents` | Cadastra um documento |
+| `GET` | `/api/documents?page=1&pageSize=10` | Lista os próprios documentos com paginação |
+| `GET` | `/api/documents/{id}` | Consulta um documento |
+| `PUT` | `/api/documents/{id}` | Atualiza um documento |
+| `DELETE` | `/api/documents/{id}` | Remove um documento |
 
 Critérios de pronto do módulo:
 
@@ -413,7 +439,7 @@ Ponto que precisa de decisão antes de qualquer uso real:
 
 ### Evolução da base
 
-- [ ] Autorização por recurso (`IAuthorizationHandler`) para documentos
+- [ ] Autorização por recurso para documentos (filtro por dono no `DocumentService` pronto; rotas em desenvolvimento)
 - [ ] Validação centralizada (FluentValidation)
 - [ ] Docker Compose (API + SQL Server)
 - [x] Pipeline de build e testes (deploy configurado, desligado)
