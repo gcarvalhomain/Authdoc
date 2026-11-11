@@ -634,4 +634,96 @@ public class DocumentEndpointsTests : IClassFixture<AuthdocApiFactory>
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.Equal("UNAUTHORIZED", error!.Code);
     }
+
+    [Fact]
+    public async Task DeleteDocument_WhenDocumentBelongsToUser_Returns204()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("delete-own@gmail.com");
+        var created = await client.CreateDocumentAsync();
+
+        // Act
+        var response = await client.DeleteAsync($"/api/documents/{created.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteDocument_WhenDocumentBelongsToUser_RemovesTheDocument()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("delete-removed@gmail.com");
+        var created = await client.CreateDocumentAsync();
+
+        // Act
+        await client.DeleteAsync($"/api/documents/{created.Id}");
+
+        // Assert
+        var response = await client.GetAsync($"/api/documents/{created.Id}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteDocument_WhenDocumentDoesNotExist_Returns404DocumentNotFound()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("delete-missing@gmail.com");
+
+        // Act
+        var response = await client.DeleteAsync($"/api/documents/{Guid.NewGuid()}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("DOCUMENT_NOT_FOUND", error!.Code);
+    }
+
+    [Fact]
+    public async Task DeleteDocument_WhenDocumentBelongsToAnotherUser_Returns404DocumentNotFound()
+    {
+        // Arrange
+        var (ownerClient, _) = await _factory.CreateUserClientAsync("delete-owner@gmail.com");
+        var (otherClient, _) = await _factory.CreateUserClientAsync("delete-other@gmail.com");
+        var created = await ownerClient.CreateDocumentAsync();
+
+        // Act
+        var response = await otherClient.DeleteAsync($"/api/documents/{created.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("DOCUMENT_NOT_FOUND", error!.Code);
+    }
+
+    [Fact]
+    public async Task DeleteDocument_WhenDocumentBelongsToAnotherUser_KeepsTheDocument()
+    {
+        // Arrange
+        var (ownerClient, _) = await _factory.CreateUserClientAsync("delete-keep-owner@gmail.com");
+        var (otherClient, _) = await _factory.CreateUserClientAsync("delete-keep-other@gmail.com");
+        var created = await ownerClient.CreateDocumentAsync();
+
+        // Act
+        await otherClient.DeleteAsync($"/api/documents/{created.Id}");
+
+        // Assert
+        var response = await ownerClient.GetAsync($"/api/documents/{created.Id}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteDocument_WithoutToken_Returns401Unauthorized()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.DeleteAsync($"/api/documents/{Guid.NewGuid()}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("UNAUTHORIZED", error!.Code);
+    }
 }
