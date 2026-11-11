@@ -20,6 +20,14 @@ public static class ApiErrors
     public static readonly ErrorResponse PageInvalid = new() { Code = "PAGE_INVALID", Message = "Page must be 1 or greater" };
     public static readonly ErrorResponse PageSizeInvalid = new() { Code = "PAGE_SIZE_INVALID", Message = "Page size must be between 1 and 100" };
     public static readonly ErrorResponse CannotDeleteOwnUser = new() { Code = "CANNOT_DELETE_OWN_USER", Message = "You cannot delete your own user" };
+    public static readonly ErrorResponse TypeRequired = new() { Code = "TYPE_REQUIRED", Message = "Type is required" };
+    public static readonly ErrorResponse TypeTooLong = new() { Code = "TYPE_TOO_LONG", Message = "Type must have at most 50 characters" };
+    public static readonly ErrorResponse NumberRequired = new() { Code = "NUMBER_REQUIRED", Message = "Number is required" };
+    public static readonly ErrorResponse NumberTooLong = new() { Code = "NUMBER_TOO_LONG", Message = "Number must have at most 50 characters" };
+    public static readonly ErrorResponse DescriptionTooLong = new() { Code = "DESCRIPTION_TOO_LONG", Message = "Description must have at most 500 characters" };
+    public static readonly ErrorResponse IssuedAtRequired = new() { Code = "ISSUED_AT_REQUIRED", Message = "Issue date is required" };
+    public static readonly ErrorResponse IssuedAtInFuture = new() { Code = "ISSUED_AT_IN_FUTURE", Message = "Issue date cannot be in the future" };
+    public static readonly ErrorResponse ExpiresAtBeforeIssuedAt = new() { Code = "EXPIRES_AT_BEFORE_ISSUED_AT", Message = "Expiry date must be after the issue date" };
 
     // Authentication (401)
     public static readonly ErrorResponse InvalidCredentials = new() { Code = "INVALID_CREDENTIALS", Message = "Email or password is incorrect" };
