@@ -37,6 +37,21 @@ public static class ApiTestHelpers
         return (client, user);
     }
 
+    public static async Task<DocumentResponse> CreateDocumentAsync(this HttpClient client, string name = "My passport")
+    {
+        var response = await client.PostAsJsonAsync("/api/documents", new
+        {
+            type = "Passport",
+            name,
+            number = "FZ123456",
+            issuedAt = "2024-01-10",
+            expiresAt = "2034-01-10"
+        });
+        response.EnsureSuccessStatusCode();
+
+        return (await response.Content.ReadFromJsonAsync<DocumentResponse>())!;
+    }
+
     public static async Task<UserResponse> RegisterUserAsync(this HttpClient adminClient, string email, string password = "senha123")
     {
         var response = await adminClient.PostAsJsonAsync("/api/auth/register", new

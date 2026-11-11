@@ -261,4 +261,85 @@ public class DocumentEndpointsTests : IClassFixture<AuthdocApiFactory>
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.Equal("UNAUTHORIZED", error!.Code);
     }
+
+    [Fact]
+    public async Task GetDocument_WhenDocumentBelongsToUser_Returns200WithDocument()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("get-own@gmail.com");
+        var created = await client.CreateDocumentAsync();
+
+        // Act
+        var response = await client.GetAsync($"/api/documents/{created.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var document = await response.Content.ReadFromJsonAsync<DocumentResponse>();
+        Assert.Equal(created.Id, document!.Id);
+        Assert.Equal("My passport", document.Name);
+    }
+
+    [Fact]
+    public async Task GetDocument_WhenDocumentDoesNotExist_Returns404DocumentNotFound()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("get-missing@gmail.com");
+
+        // Act
+        var response = await client.GetAsync($"/api/documents/{Guid.NewGuid()}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("DOCUMENT_NOT_FOUND", error!.Code);
+    }
+
+    [Fact]
+    public async Task GetDocument_WhenDocumentBelongsToAnotherUser_Returns404DocumentNotFound()
+    {
+        // Arrange
+        var (ownerClient, _) = await _factory.CreateUserClientAsync("get-owner@gmail.com");
+        var (otherClient, _) = await _factory.CreateUserClientAsync("get-other@gmail.com");
+        var created = await ownerClient.CreateDocumentAsync();
+
+        // Act
+        var response = await otherClient.GetAsync($"/api/documents/{created.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("DOCUMENT_NOT_FOUND", error!.Code);
+    }
+
+    [Fact]
+    public async Task GetDocument_WhenRequestedByAdmin_Returns404DocumentNotFound()
+    {
+        // Arrange
+        var (ownerClient, _) = await _factory.CreateUserClientAsync("get-admin-owner@gmail.com");
+        var adminClient = await _factory.CreateAdminClientAsync();
+        var created = await ownerClient.CreateDocumentAsync();
+
+        // Act
+        var response = await adminClient.GetAsync($"/api/documents/{created.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("DOCUMENT_NOT_FOUND", error!.Code);
+    }
+
+    [Fact]
+    public async Task GetDocument_WithoutToken_Returns401Unauthorized()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync($"/api/documents/{Guid.NewGuid()}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("UNAUTHORIZED", error!.Code);
+    }
 }
