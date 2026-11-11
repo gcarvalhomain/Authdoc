@@ -1,18 +1,39 @@
 # Authdoc
 
-API de autenticação e controle de acesso para uma plataforma de **organização de documentos de imigrantes**.
+**Um cofre pessoal de documentos: tudo organizado em um só lugar, para quando for pedido.**
 
-Construída em **ASP.NET Core 10 (Minimal APIs)**, com **JWT**, **Entity Framework Core** e **SQL Server**.
+Aplicação de **organização e armazenamento de documentos pessoais**. Hoje, o que existe é a base: uma API de identidade e controle de acesso construída em **ASP.NET Core 10 (Minimal APIs)**, com **JWT**, **Entity Framework Core** e **SQL Server**.
 
 ---
 
+## O problema
+
+Em agosto de 2026 fui ao meu atendimento de imigração em Portugal com todos os documentos da lista oficial publicada, todos válidos. No balcão, fui informado de que faltavam documentos que não constavam nessa lista.
+
+Não dá para prever tudo o que pode ser pedido. O que dá para controlar é ter cada documento que eu possuo guardado, organizado e com o prazo de validade à vista. Foi daí que nasceu o Authdoc.
+
 ## Visão do produto
 
-Imigrantes lidam com um volume grande de documentos críticos: passaporte, vistos, autorizações de residência, certidões e comprovantes. Esses documentos costumam estar espalhados e ter prazos de validade. O Authdoc tem como objetivo centralizar esses documentos com uma garantia central:
+O Authdoc é um cofre pessoal: cada pessoa guarda os próprios documentos em um só lugar, organizados por tipo, e consegue encontrá-los na hora em que forem pedidos.
+
+- **Organização:** cada documento com tipo, número, data de emissão e data de validade
+- **Armazenamento privado:** upload e consulta restritos ao dono
+- **Prazo à vista:** cada documento mostra um status calculado a partir da data de validade informada pelo próprio usuário: `Valid`, `ExpiringSoon` (vence em até 30 dias) ou `Expired`
+
+A garantia central do projeto:
 
 > **Cada usuário acessa exclusivamente os próprios documentos.**
 
-Por isso o projeto começa pela camada de identidade. Autenticação, papéis (roles) e emissão de tokens são a base sobre a qual o módulo de documentos será construído.
+Essa regra não tem exceção: o papel `Admin` gerencia contas, mas não dá acesso aos documentos de outros usuários.
+
+Por isso o projeto começa pela camada de identidade. Autenticação, papéis (roles) e emissão de tokens são a base sobre a qual o módulo de documentos está sendo construído.
+
+### O que o Authdoc não é
+
+- **Não diz quais documentos um processo exige.** Ele guarda o que o usuário tem, e não o que uma entidade pode pedir.
+- **Não valida documentos.** "Dentro do prazo" significa apenas que a data de validade informada ainda não passou. A aplicação não verifica autenticidade nem se o documento será aceito.
+- **Não informa a situação legal de ninguém nem é aconselhamento jurídico.**
+- **Não é um serviço em produção.** É um projeto de portfólio, sem ambiente público, e não deve receber documentos reais de terceiros.
 
 ## Status atual
 
@@ -27,11 +48,15 @@ Por isso o projeto começa pela camada de identidade. Autenticação, papéis (r
 | Tratamento global de exceções | ✅ Implementado |
 | Bootstrap automático (migrations + admin inicial) | ✅ Implementado |
 | Testes unitários e de integração | ✅ Implementado |
-| Pipeline de CI/CD (build, testes e deploy) | ✅ Implementado |
-| **Módulo de documentos** | 🚧 Próxima etapa |
-| Vínculo documento ↔ usuário com autorização por propriedade | 🚧 Próxima etapa |
+| Pipeline de CI (build e testes) | ✅ Implementado |
+| Deploy automático no Azure App Service | ⏸️ Configurado, desligado até existir ambiente de produção |
+| **Módulo de documentos** | 🚧 Em desenvolvimento |
+| Vínculo documento ↔ usuário com autorização por propriedade | 🚧 Em desenvolvimento |
+| Status de validade (`Valid` / `ExpiringSoon` / `Expired`) | 🚧 Em desenvolvimento |
+| Notificação de vencimento (Workers + Outbox) | 📋 Planejado |
+| Cadastro público (auto-registro) | 📋 Planejado |
 
-Hoje o Authdoc é uma **API de identidade e gestão de usuários**. O módulo de documentos vem em seguida e vai reutilizar toda a infraestrutura de autenticação já existente.
+Hoje o Authdoc é uma **API de identidade e gestão de usuários**. Nenhuma funcionalidade de documentos está disponível ainda: o módulo está em desenvolvimento e reutiliza toda a infraestrutura de autenticação já existente.
 
 ---
 
@@ -214,6 +239,16 @@ O deploy está desligado (`deployEnabled: 'false'`) até o banco e as configura�
 
 ---
 
+## Como uso IA no projeto
+
+Uso agentes de IA no desenvolvimento, com regras fixas:
+
+- Branches, código e commits seguem um padrão definido por mim, aplicado por skills e subagentes dedicados a tarefas específicas
+- Toda mudança é revisada por mim antes do merge
+- Uso a IA também para estudar os conceitos por trás do que foi gerado: o objetivo é conseguir explicar cada decisão descrita neste README
+
+---
+
 ## Bootstrap: o primeiro usuário
 
 O cadastro de usuários é uma operação **administrativa**: o endpoint de registro exige a policy `Admin`. Isso cria um problema clássico de "ovo e galinha": sem um admin, ninguém consegue cadastrar ninguém.
@@ -323,7 +358,7 @@ Os códigos ficam centralizados em `Src/Responses/ApiErrors.cs`.
 
 ## Roadmap
 
-### Próximo: módulo de documentos
+### Em desenvolvimento: módulo de documentos
 
 O objetivo é associar cada documento ao seu dono no banco e aplicar **autorização baseada em recurso**: além de estar autenticado, o usuário só lê, altera ou remove documentos que lhe pertencem.
 
@@ -350,15 +385,38 @@ erDiagram
 - Entidade `Document` com chave estrangeira `OwnerId → User.Id`
 - O `OwnerId` sempre vem da claim `NameIdentifier` do token, nunca do corpo da requisição
 - Consultas filtradas pelo dono (`WHERE OwnerId = @currentUser`), com `404` para documentos de terceiros, sem revelar a existência deles
-- Upload e armazenamento de arquivos desacoplados da API
-- Alertas de vencimento de documentos
+- O papel `Admin` não dá acesso a documentos de outros usuários
+- Armazenamento de arquivos atrás de uma interface, com uma implementação em disco local, para a API não depender do local físico
+- Upload restrito a PDF, JPG e PNG, com no máximo 10 MB
+- Status de validade calculado a partir de `ExpiresAt`: `Valid`, `ExpiringSoon` (vence em até 30 dias) ou `Expired`
+
+Critérios de pronto do módulo:
+
+1. Enviar um documento (arquivo, tipo, número e datas de emissão e validade)
+2. Listar e consultar somente os próprios documentos
+3. Acessar, alterar ou remover documento de outro usuário retorna `404`
+4. Cada documento retornado traz o status de validade
+5. Testes de integração para os pontos 2 e 3 e testes unitários para a regra de status
+
+### Depois
+
+- **Cadastro público:** hoje o registro é uma operação administrativa (veja [Bootstrap](#bootstrap-o-primeiro-usuário)), então uma pessoa ainda não consegue criar a própria conta
+- **Notificação de vencimento:** avisar o usuário de forma ativa, com Workers e Outbox. Nesta etapa o prazo aparece apenas como status na consulta
+
+### Questão em aberto
+
+Ponto que precisa de decisão antes de qualquer uso real:
+
+| Questão | Por que importa |
+|---|---|
+| Dados pessoais sensíveis (RGPD) | Passaportes e títulos de residência exigem cifragem em repouso, política de retenção e eliminação a pedido do titular |
 
 ### Evolução da base
 
 - [ ] Autorização por recurso (`IAuthorizationHandler`) para documentos
 - [ ] Validação centralizada (FluentValidation)
 - [ ] Docker Compose (API + SQL Server)
-- [x] Pipeline de build, testes e deploy
+- [x] Pipeline de build e testes (deploy configurado, desligado)
 - [x] Índice único de e-mail e limites de tamanho em `Email` e `Name`
 - [x] Tratamento global de exceções
 - [x] Refresh token e revogação de sessão
