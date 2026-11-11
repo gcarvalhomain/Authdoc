@@ -103,6 +103,22 @@ public static class EndpointsDocument
                 return Results.Ok(document);
             })
             .RequireAuthorization();
+        app.MapDelete("/api/documents/{id}", async (Guid id, ClaimsPrincipal currentUser, DocumentService documentService) =>
+            {
+                if (!TryGetUserId(currentUser, out var ownerId))
+                {
+                    return Results.Json(ApiErrors.Unauthorized, statusCode: StatusCodes.Status401Unauthorized);
+                }
+
+                var deleted = await documentService.DeleteAsync(ownerId, id);
+                if (!deleted)
+                {
+                    return Results.NotFound(ApiErrors.DocumentNotFound);
+                }
+
+                return Results.NoContent();
+            })
+            .RequireAuthorization();
     }
 
     private static bool TryGetUserId(ClaimsPrincipal currentUser, out Guid userId)
