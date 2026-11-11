@@ -11,6 +11,8 @@ namespace Authdoc.Endpoints;
 
 public static class EndpointsDocument
 {
+    private const int MaxPageSize = 100;
+
     public static void MapDocumentEndpoints(this WebApplication app)
     {
         app.MapPost("/api/documents", async (CreateDocumentRequest request, ClaimsPrincipal currentUser, DocumentService documentService) =>
@@ -50,6 +52,28 @@ public static class EndpointsDocument
                 }
 
                 return Results.Ok(document);
+            })
+            .RequireAuthorization();
+        app.MapGet("/api/documents", async (ClaimsPrincipal currentUser, DocumentService documentService, int page = 1, int pageSize = 10) =>
+            {
+                if (page < 1)
+                {
+                    return Results.BadRequest(ApiErrors.PageInvalid);
+                }
+
+                if (pageSize < 1 || pageSize > MaxPageSize)
+                {
+                    return Results.BadRequest(ApiErrors.PageSizeInvalid);
+                }
+
+                if (!TryGetUserId(currentUser, out var ownerId))
+                {
+                    return Results.Json(ApiErrors.Unauthorized, statusCode: StatusCodes.Status401Unauthorized);
+                }
+
+                var documents = await documentService.ListAsync(ownerId, page, pageSize);
+
+                return Results.Ok(documents);
             })
             .RequireAuthorization();
     }

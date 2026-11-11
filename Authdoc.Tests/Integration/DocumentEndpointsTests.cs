@@ -342,4 +342,106 @@ public class DocumentEndpointsTests : IClassFixture<AuthdocApiFactory>
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.Equal("UNAUTHORIZED", error!.Code);
     }
+
+    [Fact]
+    public async Task ListDocuments_WithDocumentsOfTwoUsers_ReturnsOnlyOwnDocuments()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("list-own@gmail.com");
+        var (otherClient, _) = await _factory.CreateUserClientAsync("list-other@gmail.com");
+        await client.CreateDocumentAsync("My passport");
+        await client.CreateDocumentAsync("My visa");
+        await otherClient.CreateDocumentAsync("Other user passport");
+
+        // Act
+        var response = await client.GetAsync("/api/documents");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var page = await response.Content.ReadFromJsonAsync<PagedResponse<DocumentResponse>>();
+        Assert.Equal(2, page!.TotalCount);
+        Assert.Equal(["My passport", "My visa"], page.Items.Select(item => item.Name));
+    }
+
+    [Fact]
+    public async Task ListDocuments_WithMoreDocumentsThanPageSize_ReturnsRequestedPage()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("list-paged@gmail.com");
+        await client.CreateDocumentAsync("First");
+        await client.CreateDocumentAsync("Second");
+        await client.CreateDocumentAsync("Third");
+
+        // Act
+        var response = await client.GetAsync("/api/documents?page=2&pageSize=2");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var page = await response.Content.ReadFromJsonAsync<PagedResponse<DocumentResponse>>();
+        Assert.Equal(2, page!.Page);
+        Assert.Equal(2, page.PageSize);
+        Assert.Equal(3, page.TotalCount);
+        Assert.Equal("Third", Assert.Single(page.Items).Name);
+    }
+
+    [Fact]
+    public async Task ListDocuments_WithoutDocuments_ReturnsEmptyPage()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("list-empty@gmail.com");
+
+        // Act
+        var response = await client.GetAsync("/api/documents");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var page = await response.Content.ReadFromJsonAsync<PagedResponse<DocumentResponse>>();
+        Assert.Equal(0, page!.TotalCount);
+        Assert.Empty(page.Items);
+    }
+
+    [Fact]
+    public async Task ListDocuments_WithPageZero_Returns400PageInvalid()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("list-page-zero@gmail.com");
+
+        // Act
+        var response = await client.GetAsync("/api/documents?page=0");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("PAGE_INVALID", error!.Code);
+    }
+
+    [Fact]
+    public async Task ListDocuments_WithPageSizeAboveLimit_Returns400PageSizeInvalid()
+    {
+        // Arrange
+        var (client, _) = await _factory.CreateUserClientAsync("list-page-size@gmail.com");
+
+        // Act
+        var response = await client.GetAsync("/api/documents?pageSize=101");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("PAGE_SIZE_INVALID", error!.Code);
+    }
+
+    [Fact]
+    public async Task ListDocuments_WithoutToken_Returns401Unauthorized()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.GetAsync("/api/documents");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("UNAUTHORIZED", error!.Code);
+    }
 }
