@@ -393,6 +393,7 @@ Regras do módulo:
 - Armazenamento de arquivos atrás de uma interface, com uma implementação em disco local, para a API não depender do local físico
 - Upload restrito a PDF, JPG e PNG, com no máximo 10 MB
 - Status de validade calculado a partir de `ExpiresAt`: `Valid`, `ExpiringSoon` (vence em até 30 dias) ou `Expired`
+- Um documento sem data de validade é sempre `Valid`
 
 Andamento:
 
