@@ -1,0 +1,28 @@
+:root {
+  --text: #374151;
+  --text-strong: #111827;
+  --bg: #ffffff;
+  --border: #e5e7eb;
+  --accent: #2563eb;
+
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+h1,
+h2 {
+  color: var(--text-strong);
+}
