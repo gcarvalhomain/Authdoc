@@ -79,6 +79,7 @@ builder.Services.AddAuthorization(options =>
 
 var loginPermitLimit = builder.Configuration.GetValue("RateLimiting:LoginPermitLimit", 5);
 var refreshPermitLimit = builder.Configuration.GetValue("RateLimiting:RefreshPermitLimit", 30);
+var registerPermitLimit = builder.Configuration.GetValue("RateLimiting:RegisterPermitLimit", 5);
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -86,6 +87,7 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy("login", httpContext => LimitPerMinuteByIp(httpContext, loginPermitLimit));
     options.AddPolicy("refresh", httpContext => LimitPerMinuteByIp(httpContext, refreshPermitLimit));
+    options.AddPolicy("register", httpContext => LimitPerMinuteByIp(httpContext, registerPermitLimit));
 
     options.OnRejected = async (context, cancellationToken) =>
     {

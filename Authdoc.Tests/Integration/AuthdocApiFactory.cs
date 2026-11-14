@@ -16,6 +16,7 @@ public class AuthdocApiFactory : WebApplicationFactory<Program>
 
     protected virtual int LoginPermitLimit => 1000;
     protected virtual int RefreshPermitLimit => 1000;
+    protected virtual int RegisterPermitLimit => 1000;
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -24,6 +25,7 @@ public class AuthdocApiFactory : WebApplicationFactory<Program>
         builder.UseSetting("SeedData:AdminPassword", AdminPassword);
         builder.UseSetting("RateLimiting:LoginPermitLimit", LoginPermitLimit.ToString());
         builder.UseSetting("RateLimiting:RefreshPermitLimit", RefreshPermitLimit.ToString());
+        builder.UseSetting("RateLimiting:RegisterPermitLimit", RegisterPermitLimit.ToString());
 
         builder.ConfigureServices(services =>
         {
@@ -48,4 +50,5 @@ public class RateLimitedApiFactory : AuthdocApiFactory
 {
     protected override int LoginPermitLimit => 5;
     protected override int RefreshPermitLimit => 5;
+    protected override int RegisterPermitLimit => 5;
 }
