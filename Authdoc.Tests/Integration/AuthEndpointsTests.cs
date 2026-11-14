@@ -1,7 +1,7 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
+using Authdoc.Application.DTOs;
 using Authdoc.Responses;
 
 namespace Authdoc.Tests.Integration;
@@ -174,21 +174,47 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
-    public async Task Register_WithUserToken_Returns403Forbidden()
+    public async Task Register_WithoutToken_Returns201WithUserRole()
     {
         // Arrange
-        var adminClient = await _factory.CreateAdminClientAsync();
-        await adminClient.RegisterUserAsync("forbidden@gmail.com");
-        var userClient = _factory.CreateClient();
-        var login = await userClient.LoginAsync("forbidden@gmail.com", "senha123");
-        userClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login.Token);
+        var client = _factory.CreateClient();
 
         // Act
-        var response = await userClient.PostAsJsonAsync("/api/auth/register", new { });
+        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            name = "Public User",
+            email = "publicsignup@gmail.com",
+            password = "senha123",
+            confirmationPassword = "senha123"
+        });
 
         // Assert
-        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-        Assert.Equal("FORBIDDEN", error!.Code);
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var user = await response.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.Equal("publicsignup@gmail.com", user!.Email);
+        Assert.Equal("User", user.Role);
+        Assert.Equal($"/api/users/{user.Id}", response.Headers.Location?.ToString());
+    }
+
+    [Fact]
+    public async Task Register_WithAdminRoleInBody_CreatesUserWithUserRole()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            name = "Wants Admin",
+            email = "wantsadmin@gmail.com",
+            password = "senha123",
+            confirmationPassword = "senha123",
+            role = "Admin"
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var user = await response.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.Equal("User", user!.Role);
     }
 }

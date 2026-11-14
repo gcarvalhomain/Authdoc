@@ -32,7 +32,7 @@ public static class EndpointsAuth
 
                 return Results.Created($"/api/users/{user.Id}", user);
             })
-            .RequireAuthorization("Admin");
+            .RequireRateLimiting("register");
         app.MapPost("/api/auth/login", async (LoginRequest request, AuthService authService) =>
         {
             request.Email = EmailValidator.Normalize(request.Email);

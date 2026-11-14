@@ -36,6 +36,38 @@ public class RateLimitTests : IClassFixture<RateLimitedApiFactory>
     }
 
     [Fact]
+    public async Task Register_AfterFiveAttempts_Returns429TooManyRequests()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            var allowed = await client.PostAsJsonAsync("/api/auth/register", NewAccount($"ratelimit{attempt}@gmail.com"));
+            Assert.Equal(HttpStatusCode.Created, allowed.StatusCode);
+        }
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/auth/register", NewAccount("ratelimit6@gmail.com"));
+
+        // Assert
+        Assert.Equal(HttpStatusCode.TooManyRequests, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("TOO_MANY_REQUESTS", error!.Code);
+    }
+
+    private static object NewAccount(string email)
+    {
+        return new
+        {
+            name = "Rate Limit",
+            email,
+            password = "senha123",
+            confirmationPassword = "senha123"
+        };
+    }
+
+    [Fact]
     public async Task Refresh_AfterFiveAttempts_Returns429TooManyRequests()
     {
         // Arrange
