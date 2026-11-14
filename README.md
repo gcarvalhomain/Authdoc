@@ -44,7 +44,8 @@ That is why the project starts with the identity layer. Authentication, roles an
 | Password change | ✅ Implemented |
 | Role-based authorization (`Admin` / `User`) | ✅ Implemented |
 | User management (administrative CRUD and pagination) | ✅ Implemented |
-| Rate limiting on login, password change and refresh | ✅ Implemented |
+| Public sign-up (self-registration) | ✅ Implemented |
+| Rate limiting on sign-up, login, password change and refresh | ✅ Implemented |
 | Global exception handling | ✅ Implemented |
 | Automatic bootstrap (migrations + initial admin) | ✅ Implemented |
 | Unit and integration tests | ✅ Implemented |
@@ -55,7 +56,7 @@ That is why the project starts with the identity layer. Authentication, roles an
 | Document ↔ user link with ownership-based authorization | ✅ Implemented |
 | Validity status (`Valid` / `ExpiringSoon` / `Expired`) | 🚧 In development |
 | Expiry notification (Workers + Outbox) | 📋 Planned |
-| Public sign-up (self-registration) | 📋 Planned |
+| Email verification on sign-up | 📋 Planned |
 
 Today Authdoc is an **identity and user management API** in which each user can also register, list, read, update and delete the data of their own documents. The validity status and the file upload are still missing (see the [Roadmap](#roadmap)). The documents module reuses all the authentication infrastructure that already exists.
 
@@ -159,7 +160,8 @@ The non-sensitive settings are in `Authdoc/appsettings.json`:
   },
   "RateLimiting": {
     "LoginPermitLimit": 5,
-    "RefreshPermitLimit": 30
+    "RefreshPermitLimit": 30,
+    "RegisterPermitLimit": 5
   }
 }
 ```
@@ -221,7 +223,7 @@ dotnet test
 | Type | What it covers |
 |---|---|
 | Unit | `EmailValidator`, the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
-| Integration | The whole API over HTTP with `WebApplicationFactory`: authentication, refresh token, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
+| Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
 
@@ -253,7 +255,7 @@ I use AI agents in the development, with fixed rules:
 
 ## Bootstrap: the first user
 
-Registering users is an **administrative** operation: the register endpoint requires the `Admin` policy. This creates a classic "chicken and egg" problem: without an admin, nobody can register anybody.
+Anyone can create an account, but a new account always has the `User` role. The `Admin` role is only given by another admin, through `PATCH /api/users/{id}/role`. This creates a classic "chicken and egg" problem: without an admin, nobody can become an admin.
 
 The `DbInitializer` solves this when the application starts:
 
@@ -262,7 +264,7 @@ The `DbInitializer` solves this when the application starts:
 3. **If a user with the default admin email exists, but without the role**, it promotes that user to `Admin`.
 4. **Otherwise, it creates the initial admin**, with the password going through the same `IPasswordHasher` used in the register and login flow.
 
-Initial credentials:
+Initial admin credentials:
 
 | Email | Password |
 |---|---|
@@ -271,15 +273,8 @@ Initial credentials:
 ### First complete flow
 
 ```http
-### 1. Log in as admin
-POST http://localhost:5297/api/auth/login
-Content-Type: application/json
-
-{ "email": "admin@system.com", "password": "<SeedData:AdminPassword>" }
-
-### 2. Register a user (use the token returned in step 1)
+### 1. Create an account (no token needed)
 POST http://localhost:5297/api/auth/register
-Authorization: Bearer <token>
 Content-Type: application/json
 
 {
@@ -289,12 +284,27 @@ Content-Type: application/json
   "confirmationPassword": "password123"
 }
 
-### 3. Log in with the new user
+### 2. Log in with the new user
 POST http://localhost:5297/api/auth/login
 Content-Type: application/json
 
 { "email": "maria@gmail.com", "password": "password123" }
+
+### 3. Register a document (use the token returned in step 2)
+POST http://localhost:5297/api/documents
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "type": "Passport",
+  "name": "My passport",
+  "number": "FZ123456",
+  "issuedAt": "2024-01-10",
+  "expiresAt": "2034-01-10"
+}
 ```
+
+The admin logs in the same way, with `admin@system.com` and the password from `SeedData:AdminPassword`.
 
 ---
 
@@ -307,7 +317,7 @@ Content-Type: application/json
 | `POST` | `/api/auth/login` | Public | Authenticates and returns the JWT, the refresh token, the expirations and the user data |
 | `POST` | `/api/auth/refresh` | Public | Exchanges a valid refresh token for a new pair of tokens |
 | `PUT` | `/api/auth/password` | Authenticated | Changes the user's own password (ends the other sessions) |
-| `POST` | `/api/auth/register` | Admin | Registers a new user |
+| `POST` | `/api/auth/register` | Public | Creates a new account, always with the `User` role |
 | `GET` | `/api/auth/me` | Authenticated | Returns the identity inside the token, including the role |
 
 ### Users
@@ -351,7 +361,8 @@ Request body for `POST` and `PUT`:
 - The email is normalized (trimmed and lowercased) before validating, searching or saving
 - The name is required, with at most 100 characters
 - The password has at least 8 characters, cannot be only spaces, and is confirmed on registration
-- Login and password change are limited to 5 attempts per minute per IP, and refresh to 30; above that the API responds with `429`
+- Sign-up is public and always creates an account with the `User` role; a role sent in the request body is ignored
+- Sign-up, login and password change are limited to 5 attempts per minute per IP, and refresh to 30; above that the API responds with `429`
 - The refresh token is valid for 7 days, can be used only once (each use generates a new one) and is stored only as a SHA-256 hash
 - Changing the password revokes all the user's refresh tokens
 - The role cannot be changed through the update endpoint, which prevents privilege escalation through the payload
@@ -461,7 +472,7 @@ Definition of done for the module:
 
 ### Later
 
-- **Public sign-up:** today registration is an administrative operation (see [Bootstrap](#bootstrap-the-first-user)), so a person cannot create their own account yet
+- **Email verification:** today an account can be created with an email that does not belong to the person. The plan is to confirm the email before the account can be used
 - **Expiry notification:** actively warn the user, with Workers and Outbox. In this stage the deadline appears only as a status when the document is read
 
 ### Open question
@@ -499,4 +510,6 @@ The JWT key and the initial admin password are not versioned: in development the
 | The JWT stays valid until it expires | A demoted or deleted user keeps the old access for up to `Jwt:ExpirationInMinutes`. The refresh already returns the new role, but the old token stays valid until it expires | Reduce `Jwt:ExpirationInMinutes` (the refresh avoids repeated logins) or check a *security stamp* on every request |
 | The last admin rule is not atomic | Two simultaneous requests can demote or delete the last two admins | A transaction with the right isolation level or a database lock |
 | Rate limiting is in memory and per IP | It resets when the API restarts, it is not shared between instances and, behind a proxy, everyone can look like the same IP | Distributed rate limiting (e.g. Redis) and `ForwardedHeaders` configuration |
+| The email is not verified on sign-up | A person can create an account with an email that is not theirs | Send a confirmation link and block the login until the email is confirmed |
+| Sign-up reveals whether an email has an account | The `409 EMAIL_ALREADY_IN_USE` answer lets anyone test which emails are registered | Answer every sign-up the same way and send the result by email |
 | Integration tests use an in-memory database | The unique email index is not checked by the database in the tests | Tests with a real SQL Server (e.g. Testcontainers) |
