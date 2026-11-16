@@ -70,9 +70,3 @@ h3 {
 small {
   font-size: var(--size-small);
 }
-
-main {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: var(--space-32) var(--space-16);
-}
