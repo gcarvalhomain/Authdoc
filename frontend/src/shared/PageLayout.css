@@ -1,0 +1,30 @@
+.page-header {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+/* The header content and the page content have the same width,
+   so the logo and the page text start on the same line. */
+.page-header-content,
+.page-content {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.page-header-content {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 var(--space-16);
+}
+
+/* The logo is only text for now. The final logo comes later. */
+.logo {
+  font-size: var(--size-h3);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.page-content {
+  padding: var(--space-32) var(--space-16);
+}

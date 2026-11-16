@@ -1,9 +1,11 @@
+import PageLayout from './shared/PageLayout.tsx'
+
 function App() {
   return (
-    <main>
-      <h1>Authdoc</h1>
+    <PageLayout>
+      <h1>Welcome</h1>
       <p>A personal document vault.</p>
-    </main>
+    </PageLayout>
   )
 }
 
