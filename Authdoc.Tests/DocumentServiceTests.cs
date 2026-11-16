@@ -115,6 +115,44 @@ public class DocumentServiceTests
     }
 
     [Fact]
+    public async Task ListAsync_WithPageAfterTheLastOne_ReturnsEmptyPage()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var ownerId = Guid.NewGuid();
+        context.Documents.Add(NewDocument(ownerId));
+        await context.SaveChangesAsync();
+        var service = new DocumentService(context);
+
+        // Act
+        var result = await service.ListAsync(ownerId, page: 2, pageSize: 10);
+
+        // Assert
+        Assert.Empty(result.Items);
+        Assert.Equal(1, result.TotalCount);
+    }
+
+    [Fact]
+    public async Task ListAsync_WithPageTooBigForAnInt_ReturnsEmptyPage()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var ownerId = Guid.NewGuid();
+        context.Documents.Add(NewDocument(ownerId));
+        await context.SaveChangesAsync();
+        var service = new DocumentService(context);
+
+        // Act
+        // (page - 1) * pageSize does not fit in an int here.
+        var result = await service.ListAsync(ownerId, page: int.MaxValue, pageSize: 100);
+
+        // Assert
+        Assert.Empty(result.Items);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(int.MaxValue, result.Page);
+    }
+
+    [Fact]
     public async Task UpdateAsync_WhenDocumentBelongsToOwner_UpdatesDocument()
     {
         // Arrange

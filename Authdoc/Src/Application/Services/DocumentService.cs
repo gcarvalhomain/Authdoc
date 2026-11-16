@@ -42,12 +42,21 @@ public class DocumentService
 
         var totalCount = await ownerDocuments.CountAsync();
 
-        var documents = await ownerDocuments
-            .OrderBy(document => document.CreatedAt)
-            .ThenBy(document => document.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        // (page - 1) * pageSize may not fit in an int, so the skip is calculated as a long.
+        var skip = (long)(page - 1) * pageSize;
+
+        var documents = new List<Document>();
+
+        // A page after the last one has no items, so the query is not needed.
+        if (skip < totalCount)
+        {
+            documents = await ownerDocuments
+                .OrderBy(document => document.CreatedAt)
+                .ThenBy(document => document.Id)
+                .Skip((int)skip)
+                .Take(pageSize)
+                .ToListAsync();
+        }
 
         return new PagedResponse<DocumentResponse>
         {

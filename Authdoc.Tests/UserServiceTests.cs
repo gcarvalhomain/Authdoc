@@ -17,6 +17,25 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task ListAsync_WithPageTooBigForAnInt_ReturnsEmptyPage()
+    {
+        // Arrange
+        using var context = CreateContext();
+        context.Users.Add(new User { Name = "User", Email = "page-overflow@gmail.com" });
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        // (page - 1) * pageSize does not fit in an int here.
+        var result = await service.ListAsync(page: int.MaxValue, pageSize: 100);
+
+        // Assert
+        Assert.Empty(result.Items);
+        Assert.Equal(1, result.TotalCount);
+        Assert.Equal(int.MaxValue, result.Page);
+    }
+
+    [Fact]
     public async Task DeleteAsync_WhenUserDoesNotExist_ReturnsUserNotFound()
     {
         // Arrange
