@@ -32,12 +32,21 @@ public class UserService
     {
         var totalCount = await _context.Users.CountAsync();
 
-        var users = await _context.Users
-            .OrderBy(user => user.CreatedAt)
-            .ThenBy(user => user.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync();
+        // (page - 1) * pageSize may not fit in an int, so the skip is calculated as a long.
+        var skip = (long)(page - 1) * pageSize;
+
+        var users = new List<User>();
+
+        // A page after the last one has no items, so the query is not needed.
+        if (skip < totalCount)
+        {
+            users = await _context.Users
+                .OrderBy(user => user.CreatedAt)
+                .ThenBy(user => user.Id)
+                .Skip((int)skip)
+                .Take(pageSize)
+                .ToListAsync();
+        }
 
         return new PagedResponse<UserResponse>
         {
