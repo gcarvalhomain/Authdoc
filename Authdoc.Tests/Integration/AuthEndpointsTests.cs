@@ -100,14 +100,32 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
         var adminClient = await _factory.CreateAdminClientAsync();
 
         // Act
-        var me = await adminClient.GetFromJsonAsync<MeResponse>("/api/auth/me");
+        var me = await adminClient.GetFromJsonAsync<UserResponse>("/api/auth/me");
 
         // Assert
         Assert.Equal(AuthdocApiFactory.AdminEmail, me!.Email);
         Assert.Equal("Admin", me.Role);
     }
 
-    private sealed record MeResponse(string Id, string Name, string Email, string Role);
+    [Fact]
+    public async Task Me_AfterNameChange_ReturnsCurrentDataFromDatabase()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+        var (userClient, user) = await _factory.CreateUserClientAsync("me-current@gmail.com");
+        await adminClient.PutAsJsonAsync($"/api/users/{user.Id}",
+            new { name = "New Name", email = "me-current@gmail.com" });
+
+        // Act
+        var response = await userClient.GetAsync("/api/auth/me");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var me = await response.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.Equal(user.Id, me!.Id);
+        Assert.Equal("New Name", me.Name);
+        Assert.Equal(user.CreatedAt, me.CreatedAt);
+    }
 
     [Fact]
     public async Task Register_WithExistingEmail_Returns409EmailAlreadyInUse()

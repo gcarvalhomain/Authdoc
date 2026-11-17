@@ -320,7 +320,7 @@ The admin logs in the same way, with `admin@system.com` and the password from `S
 | `POST` | `/api/auth/refresh` | Public | Exchanges a valid refresh token for a new pair of tokens |
 | `PUT` | `/api/auth/password` | Authenticated | Changes the user's own password (ends the other sessions) |
 | `POST` | `/api/auth/register` | Public | Creates a new account, always with the `User` role |
-| `GET` | `/api/auth/me` | Authenticated | Returns the identity inside the token, including the role |
+| `GET` | `/api/auth/me` | Authenticated | Returns the current user from the database (`id`, `email`, `name`, `role`, `createdAt`, `updatedAt`), the same format as `GET /api/users/{id}` |
 
 ### Users
 

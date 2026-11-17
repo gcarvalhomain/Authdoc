@@ -100,20 +100,23 @@ public static class EndpointsAuth
         })
         .RequireRateLimiting("refresh");
 
-        app.MapGet("/api/auth/me", (ClaimsPrincipal user) =>
+        // Reads the user from the database, not from the token: the name and the email
+        // in the token can be old, because an admin can change them after the login.
+        app.MapGet("/api/auth/me", async (ClaimsPrincipal currentUser, UserService userService) =>
             {
-                var id = user.FindFirst(ClaimTypes.NameIdentifier);
-                var name = user.FindFirst(ClaimTypes.Name);
-                var email = user.FindFirst(ClaimTypes.Email);
-                var role = user.FindFirst(ClaimTypes.Role);
-
-                return Results.Ok(new
+                var currentUserId = currentUser.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!Guid.TryParse(currentUserId, out var userId))
                 {
-                    Id = id?.Value,
-                    Name = name?.Value,
-                    Email = email?.Value,
-                    Role = role?.Value
-                });
+                    return Results.Json(ApiErrors.Unauthorized, statusCode: StatusCodes.Status401Unauthorized);
+                }
+
+                var user = await userService.GetByIdAsync(userId);
+                if (user is null)
+                {
+                    return Results.NotFound(ApiErrors.UserNotFound);
+                }
+
+                return Results.Ok(user);
             })
             .RequireAuthorization();
     }
