@@ -314,7 +314,7 @@ The `DbInitializer` solves this when the application starts:
 
 1. **Applies the pending migrations** (`Database.MigrateAsync()`). The database is created if it does not exist yet.
 2. **Checks whether any user with the `Admin` role already exists.** If one exists, it does nothing. The operation is idempotent and safe to run at every startup.
-3. **If a normal user already has the default admin email**, the API stops at startup with a clear message. It never promotes that user, because anyone can sign up with that email before the first start. To fix it, delete or rename that user in the database and start the API again.
+3. **If a normal user already has the default admin email**, the API stops at startup with a clear message. It never promotes that user, because the person who created it does not know the seed password. On the first start this cannot happen, because the seed runs before the API accepts requests; it can happen later, if no admin exists anymore (for example, after a database restore or a manual change in the database). To fix it, delete or rename that user in the database and start the API again.
 4. **Otherwise, it creates the initial admin**, with the password going through the same `IPasswordHasher` used in the register and login flow.
 
 Initial admin credentials:

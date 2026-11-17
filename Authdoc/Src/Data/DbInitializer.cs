@@ -26,7 +26,8 @@ public static class DbInitializer
 
         string adminEmail = "admin@system.com";
 
-        // Anyone can sign up with the admin email, so an existing account is never promoted:
+        // Anyone can sign up with the admin email while an admin exists. If later there is no
+        // admin anymore (a database restore or a manual change), that account is never promoted:
         // the person who created it would get the Admin role without knowing the seed password.
         bool emailIsTaken = await context.Users.AnyAsync(u => u.Email == adminEmail);
         if (emailIsTaken)
