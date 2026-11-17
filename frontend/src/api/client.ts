@@ -55,7 +55,14 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     return undefined as T
   }
 
-  return (await response.json()) as T
+  try {
+    return (await response.json()) as T
+  } catch {
+    // A success answer from the API is always JSON. If it is not (for example, an
+    // HTML page from a wrong proxy setting), the page gets an ApiError, like in
+    // any other failure, and not a raw error from JSON parsing.
+    throw new ApiError(response.status, 'UNKNOWN_ERROR', 'An unexpected error occurred')
+  }
 }
 
 // Turns an error answer into an ApiError.
