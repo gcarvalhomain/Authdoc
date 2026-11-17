@@ -49,6 +49,27 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task Register_WithSpacesAroundName_SavesTrimmedName()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/auth/register", new
+        {
+            name = "  Trimmed Name  ",
+            email = "trimmedname@gmail.com",
+            password = "senha123",
+            confirmationPassword = "senha123"
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var user = await response.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.Equal("Trimmed Name", user!.Name);
+    }
+
+    [Fact]
     public async Task Login_WithValidCredentials_ReturnsToken()
     {
         // Arrange

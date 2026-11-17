@@ -17,6 +17,7 @@ public static class EndpointsAuth
         app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
                 request.Email = EmailValidator.Normalize(request.Email);
+                request.Name = request.Name?.Trim() ?? string.Empty;
 
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)

@@ -359,7 +359,7 @@ Request body for `POST` and `PUT`:
 
 - The email must be valid, from any domain, and unique in the database; it is validated on registration and on update
 - The email is normalized (trimmed and lowercased) before validating, searching or saving
-- The name is required, with at most 100 characters
+- The name is required, with at most 100 characters; it is trimmed before validating and saving
 - The password has at least 8 characters, cannot be only spaces, and is confirmed on registration
 - Sign-up is public and always creates an account with the `User` role; a role sent in the request body is ignored
 - Sign-up, login and password change are limited to 5 attempts per minute per IP, and refresh to 30; above that the API responds with `429`
