@@ -136,6 +136,18 @@ public class UserService
         return DeleteUserResult.Deleted;
     }
 
+    // A token is accepted only while its user still exists and still has the role written in it.
+    // So a deleted user or a changed role makes the old token stop working at once.
+    public async Task<bool> IsTokenStillValidAsync(Guid id, string? tokenRole)
+    {
+        var currentRole = await _context.Users
+            .Where(user => user.Id == id)
+            .Select(user => (UserRole?)user.Role)
+            .FirstOrDefaultAsync();
+
+        return currentRole is not null && currentRole.Value.ToString() == tokenRole;
+    }
+
     public async Task<bool> EmailBelongsToAnotherUserAsync(Guid id, string email)
     {
 
