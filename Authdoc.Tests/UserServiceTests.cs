@@ -36,6 +36,54 @@ public class UserServiceTests
     }
 
     [Fact]
+    public async Task IsTokenStillValidAsync_WhenUserHasSameRole_ReturnsTrue()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = new User { Name = "User", Email = "token-same-role@gmail.com" };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        var result = await service.IsTokenStillValidAsync(user.Id, "User");
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsTokenStillValidAsync_WhenRoleChanged_ReturnsFalse()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = new User { Name = "User", Email = "token-new-role@gmail.com" };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        var result = await service.IsTokenStillValidAsync(user.Id, "Admin");
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsTokenStillValidAsync_WhenUserDoesNotExist_ReturnsFalse()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var service = new UserService(context);
+
+        // Act
+        var result = await service.IsTokenStillValidAsync(Guid.NewGuid(), "User");
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
     public async Task DeleteAsync_WhenUserDoesNotExist_ReturnsUserNotFound()
     {
         // Arrange

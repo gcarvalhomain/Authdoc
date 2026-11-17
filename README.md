@@ -77,7 +77,7 @@ Today Authdoc is an **identity and user management API** in which each user can 
 
 ## Concepts and fundamentals applied
 
-- **Stateless authentication with JWT:** the token is signed with HMAC-SHA256 and carries identity claims (`NameIdentifier`, `Name`, `Email`, `Role`). The API validates issuer, audience, lifetime and signature on every request.
+- **Stateless authentication with JWT:** the token is signed with HMAC-SHA256 and carries identity claims (`NameIdentifier`, `Name`, `Email`, `Role`). The API validates issuer, audience, lifetime and signature on every request, and then checks in the database that the user still exists and still has the role in the token.
 - **Refresh token with rotation:** each use generates a new token and revokes the previous one. Only the SHA-256 hash is stored in the database.
 - **Role-based access control (RBAC):** an `Admin` policy protects the administrative routes.
 - **Salted password hashing:** passwords are never stored in plain text. The `PasswordHasher` generates PBKDF2 hashes with a random salt and format versioning, which allows a rehash when the algorithm evolves.
@@ -125,6 +125,8 @@ sequenceDiagram
 
     C->>A: Authorization: Bearer <token>
     A->>A: Validates signature, issuer, audience, expiration
+    A->>D: User still exists, with the same role?
+    D-->>A: Yes (otherwise 401)
     A->>E: ClaimsPrincipal + policy check
     E->>S: Validated DTO
     S->>D: EF Core
@@ -367,7 +369,7 @@ Request body for `POST` and `PUT`:
 - Changing the password revokes all the user's refresh tokens
 - The role cannot be changed through the update endpoint, which prevents privilege escalation through the payload
 - The role is changed only through `PATCH /api/users/{id}/role`, with the body `{ "role": "Admin" }` or `{ "role": "User" }`
-- A role change takes effect on the next refresh or login, because the role is stored in the JWT
+- A role change or a user deletion takes effect at once: every request checks that the user of the token still exists and still has the role in the token, otherwise the answer is `401 UNAUTHORIZED`, and the client must refresh or log in again
 - An admin cannot change their own role, and the last admin of the system cannot be demoted
 - An admin cannot delete their own user, and the last admin of the system cannot be deleted
 - A document belongs to the user in the token; an owner id sent in the request body is ignored
@@ -507,7 +509,8 @@ The JWT key and the initial admin password are not versioned: in development the
 
 | Limitation | Impact | Possible solution |
 |---|---|---|
-| The JWT stays valid until it expires | A demoted or deleted user keeps the old access for up to `Jwt:ExpirationInMinutes`. The refresh already returns the new role, but the old token stays valid until it expires | Reduce `Jwt:ExpirationInMinutes` (the refresh avoids repeated logins) or check a *security stamp* on every request |
+| A password change does not end the current JWTs | A token issued before the password change keeps working for up to `Jwt:ExpirationInMinutes` (the refresh tokens are already revoked). A deleted user or a changed role is already blocked on every request | A *security stamp* on the user, written in the token and checked on every request |
+| One database query per authenticated request | The user check adds one small query (by primary key) to every request with a token | Cache the check for a short time if the load grows |
 | The last admin rule is not atomic | Two simultaneous requests can demote or delete the last two admins | A transaction with the right isolation level or a database lock |
 | Rate limiting is in memory and per IP | It resets when the API restarts, it is not shared between instances and, behind a proxy, everyone can look like the same IP | Distributed rate limiting (e.g. Redis) and `ForwardedHeaders` configuration |
 | The email is not verified on sign-up | A person can create an account with an email that is not theirs | Send a confirmation link and block the login until the email is confirmed |

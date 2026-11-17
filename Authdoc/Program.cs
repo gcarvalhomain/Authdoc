@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Authdoc.Application.Services;
@@ -58,6 +59,19 @@ builder.Services.AddAuthentication(options =>
         };
         options.Events = new JwtBearerEvents
         {
+            // The signature is valid; now check the token against the database.
+            // A deleted user or a changed role fails here, and OnChallenge answers 401.
+            OnTokenValidated = async context =>
+            {
+                var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var role = context.Principal?.FindFirst(ClaimTypes.Role)?.Value;
+                var userService = context.HttpContext.RequestServices.GetRequiredService<UserService>();
+
+                if (!Guid.TryParse(userId, out var id) || !await userService.IsTokenStillValidAsync(id, role))
+                {
+                    context.Fail("The user of this token was deleted or has another role.");
+                }
+            },
             OnChallenge = async context =>
             {
                 context.HandleResponse();
