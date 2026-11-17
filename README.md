@@ -57,6 +57,7 @@ That is why the project starts with the identity layer. Authentication, roles an
 | Validity status (`Valid` / `ExpiringSoon` / `Expired`) | 🚧 In development |
 | Expiry notification (Workers + Outbox) | 📋 Planned |
 | Email verification on sign-up | 📋 Planned |
+| **Web frontend** (React + TypeScript, see [Frontend](#frontend)) | 🚧 In development |
 
 Today Authdoc is an **identity and user management API** in which each user can also register, list, read, update and delete the data of their own documents. The validity status and the file upload are still missing (see the [Roadmap](#roadmap)). The documents module reuses all the authentication infrastructure that already exists.
 
@@ -74,6 +75,7 @@ Today Authdoc is an **identity and user management API** in which each user can 
 | Documentation | OpenAPI + [Scalar](https://scalar.com) |
 | Tests | xUnit + `WebApplicationFactory` + EF Core InMemory |
 | CI/CD | Azure Pipelines + Azure App Service |
+| Frontend | React 19 + TypeScript + Vite, linted with oxlint |
 
 ## Concepts and fundamentals applied
 
@@ -108,9 +110,10 @@ Today Authdoc is an **identity and user management API** in which each user can 
 │       ├── Models/Entities/       # Domain entities (User, UserRole, RefreshToken, Document)
 │       ├── Responses/             # Error format and global exception handling
 │       └── Validators/            # Email validation
-└── Authdoc.Tests/
-    ├── Integration/               # Full API over HTTP
-    └── *.cs                       # Unit tests
+├── Authdoc.Tests/
+│   ├── Integration/               # Full API over HTTP
+│   └── *.cs                       # Unit tests
+└── frontend/                      # Web client (React + TypeScript + Vite), see Frontend
 ```
 
 Flow of an authenticated request:
@@ -226,6 +229,56 @@ dotnet test
 | Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
+
+---
+
+## Frontend
+
+The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity and the shared components, and the pages (sign-in, sign-up and documents) come next.
+
+### Running the frontend
+
+Prerequisite: [Node.js](https://nodejs.org) 20.19 or newer. Start the API first (see [Starting the API](#starting-the-api)), then:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The app opens at `http://localhost:5173`.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Starts the development server with hot reload |
+| `npm run build` | Checks the types and builds the production files into `frontend/dist/` |
+| `npm run lint` | Runs the linter (oxlint) |
+| `npm run preview` | Serves the production build locally |
+
+### How the frontend talks to the API
+
+- The API has no CORS configuration, so the browser does not call it directly. In development, the Vite server forwards every `/api` request to `http://localhost:5297` (see `frontend/vite.config.ts`).
+- All the calls go through `apiRequest` in `frontend/src/api/client.ts`. It adds the `/api` prefix and the `Bearer` token, and every failure becomes an `ApiError` with the HTTP status and a `code`.
+- The `code` is the same as in [Error format](#error-format). The client adds two codes of its own: `NETWORK_ERROR` (the API could not be reached, for example because it is not running) and `UNKNOWN_ERROR` (an answer that did not come in the API format).
+- `frontend/src/api/errorMessages.ts` turns a code into the text shown to the user. Most codes use the API message; session, network and server errors have their own text.
+
+### Structure
+
+```
+frontend/
+├── index.html
+├── vite.config.ts           # Dev server and /api proxy
+└── src/
+    ├── main.tsx             # Entry point
+    ├── App.tsx              # Root component
+    ├── index.css            # Visual identity: colors, fonts, sizes and spacing as CSS variables
+    ├── api/                 # API client, request/response types and error messages
+    └── shared/              # Shared components: Button, Input, PageLayout
+```
+
+The visual identity uses only system fonts and no external server: the page does not load fonts, scripts or styles from the internet.
+
+The CI pipeline does not build the frontend yet.
 
 ---
 
