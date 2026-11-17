@@ -222,7 +222,7 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | `EmailValidator`, the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
+| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
 | Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
@@ -261,7 +261,7 @@ The `DbInitializer` solves this when the application starts:
 
 1. **Applies the pending migrations** (`Database.MigrateAsync()`). The database is created if it does not exist yet.
 2. **Checks whether any user with the `Admin` role already exists.** If one exists, it does nothing. The operation is idempotent and safe to run at every startup.
-3. **If a user with the default admin email exists, but without the role**, it promotes that user to `Admin`.
+3. **If a normal user already has the default admin email**, the API stops at startup with a clear message. It never promotes that user, because anyone can sign up with that email before the first start. To fix it, delete or rename that user in the database and start the API again.
 4. **Otherwise, it creates the initial admin**, with the password going through the same `IPasswordHasher` used in the register and login flow.
 
 Initial admin credentials:
