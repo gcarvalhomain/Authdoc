@@ -17,6 +17,7 @@ public static class EndpointsAuth
         app.MapPost("/api/auth/register", async (RegisterUserRequest request, AuthService authService) =>
             {
                 request.Email = EmailValidator.Normalize(request.Email);
+                request.Name = request.Name?.Trim() ?? string.Empty;
 
                 var validationError = ValidateRegister(request);
                 if (validationError is not null)
@@ -150,6 +151,11 @@ public static class EndpointsAuth
             return ApiErrors.PasswordTooShort;
         }
 
+        if (request.Password.Length > User.PasswordMaxLength)
+        {
+            return ApiErrors.PasswordTooLong;
+        }
+
         if (request.Password != request.ConfirmationPassword)
         {
             return ApiErrors.PasswordsDoNotMatch;
@@ -173,6 +179,11 @@ public static class EndpointsAuth
         if (request.NewPassword.Length < User.PasswordMinLength)
         {
             return ApiErrors.PasswordTooShort;
+        }
+
+        if (request.NewPassword.Length > User.PasswordMaxLength)
+        {
+            return ApiErrors.PasswordTooLong;
         }
 
         if (request.NewPassword != request.ConfirmationPassword)

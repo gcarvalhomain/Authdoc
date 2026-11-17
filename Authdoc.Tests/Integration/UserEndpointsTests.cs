@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Authdoc.Application.DTOs;
 using Authdoc.Responses;
 
 namespace Authdoc.Tests.Integration;
@@ -28,6 +29,23 @@ public class UserEndpointsTests : IClassFixture<AuthdocApiFactory>
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.Equal("NAME_TOO_LONG", error!.Code);
+    }
+
+    [Fact]
+    public async Task UpdateUser_WithSpacesAroundName_SavesTrimmedName()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+        var user = await adminClient.RegisterUserAsync("updatetrimmedname@gmail.com");
+
+        // Act
+        var response = await adminClient.PutAsJsonAsync($"/api/users/{user.Id}",
+            new { name = "  Updated Name  ", email = "updatetrimmedname@gmail.com" });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var updated = await response.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.Equal("Updated Name", updated!.Name);
     }
 
     [Fact]

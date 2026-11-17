@@ -25,35 +25,37 @@ public static class DbInitializer
         if (hasAdmin) return;
 
         string adminEmail = "admin@system.com";
-        var existingUser = await context.Users.FirstOrDefaultAsync(u => u.Email == adminEmail);
 
-        if (existingUser != null)
+        // Anyone can sign up with the admin email while an admin exists. If later there is no
+        // admin anymore (a database restore or a manual change), that account is never promoted:
+        // the person who created it would get the Admin role without knowing the seed password.
+        bool emailIsTaken = await context.Users.AnyAsync(u => u.Email == adminEmail);
+        if (emailIsTaken)
         {
-            existingUser.Role = UserRole.Admin;
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(adminPassword))
-            {
-                throw new InvalidOperationException("SeedData:AdminPassword is not configured. See README.md for instructions.");
-            }
-
-            var now = DateTime.UtcNow;
-            var initialAdmin = new User
-            {
-                Id = Guid.NewGuid(),
-                Name = "Start Admin",
-                Email = adminEmail,
-                Role = UserRole.Admin,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-
-            initialAdmin.PasswordHash = passwordHasher.HashPassword(initialAdmin, adminPassword);
-
-            await context.Users.AddAsync(initialAdmin);
+            throw new InvalidOperationException(
+                $"There is no admin, and the email {adminEmail} already belongs to a normal user. " +
+                "Delete or rename that user before starting the API. See README.md for instructions.");
         }
 
+        if (string.IsNullOrWhiteSpace(adminPassword))
+        {
+            throw new InvalidOperationException("SeedData:AdminPassword is not configured. See README.md for instructions.");
+        }
+
+        var now = DateTime.UtcNow;
+        var initialAdmin = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = "Start Admin",
+            Email = adminEmail,
+            Role = UserRole.Admin,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        initialAdmin.PasswordHash = passwordHasher.HashPassword(initialAdmin, adminPassword);
+
+        await context.Users.AddAsync(initialAdmin);
         await context.SaveChangesAsync();
     }
 }

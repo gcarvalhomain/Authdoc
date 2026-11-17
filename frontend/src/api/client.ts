@@ -55,17 +55,45 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     return undefined as T
   }
 
-  return (await response.json()) as T
+  try {
+    return (await readJson(response)) as T
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+    // A success answer from the API is always JSON. If it is not (for example, an
+    // HTML page from a wrong proxy setting), the page gets an ApiError, like in
+    // any other failure, and not a raw error from JSON parsing.
+    throw new ApiError(response.status, 'UNKNOWN_ERROR', 'An unexpected error occurred')
+  }
+}
+
+// Reads the body of an answer as JSON. The two ways it can fail are different:
+// - the connection drops while the body arrives: fetch gives a TypeError, which
+//   becomes NETWORK_ERROR here;
+// - the body is not JSON: JSON parsing gives a SyntaxError, which goes to the caller.
+async function readJson(response: Response): Promise<unknown> {
+  try {
+    return await response.json()
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new ApiError(response.status, 'NETWORK_ERROR', 'Could not reach the server')
+    }
+    throw error
+  }
 }
 
 // Turns an error answer into an ApiError.
 async function readError(response: Response): Promise<ApiError> {
   try {
-    const error = (await response.json()) as Partial<ErrorResponse>
+    const error = (await readJson(response)) as Partial<ErrorResponse>
     if (typeof error.code === 'string' && typeof error.message === 'string') {
       return new ApiError(response.status, error.code, error.message)
     }
-  } catch {
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return error
+    }
     // The body is not JSON. The rules below decide the code.
   }
 

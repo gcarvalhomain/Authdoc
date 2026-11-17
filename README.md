@@ -57,6 +57,7 @@ That is why the project starts with the identity layer. Authentication, roles an
 | Validity status (`Valid` / `ExpiringSoon` / `Expired`) | 🚧 In development |
 | Expiry notification (Workers + Outbox) | 📋 Planned |
 | Email verification on sign-up | 📋 Planned |
+| **Web frontend** (React + TypeScript, see [Frontend](#frontend)) | 🚧 In development |
 
 Today Authdoc is an **identity and user management API** in which each user can also register, list, read, update and delete the data of their own documents. The validity status and the file upload are still missing (see the [Roadmap](#roadmap)). The documents module reuses all the authentication infrastructure that already exists.
 
@@ -74,6 +75,7 @@ Today Authdoc is an **identity and user management API** in which each user can 
 | Documentation | OpenAPI + [Scalar](https://scalar.com) |
 | Tests | xUnit + `WebApplicationFactory` + EF Core InMemory |
 | CI/CD | Azure Pipelines + Azure App Service |
+| Frontend | React 19 + TypeScript + Vite, linted with oxlint |
 
 ## Concepts and fundamentals applied
 
@@ -108,9 +110,10 @@ Today Authdoc is an **identity and user management API** in which each user can 
 │       ├── Models/Entities/       # Domain entities (User, UserRole, RefreshToken, Document)
 │       ├── Responses/             # Error format and global exception handling
 │       └── Validators/            # Email validation
-└── Authdoc.Tests/
-    ├── Integration/               # Full API over HTTP
-    └── *.cs                       # Unit tests
+├── Authdoc.Tests/
+│   ├── Integration/               # Full API over HTTP
+│   └── *.cs                       # Unit tests
+└── frontend/                      # Web client (React + TypeScript + Vite), see Frontend
 ```
 
 Flow of an authenticated request:
@@ -222,10 +225,60 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | `EmailValidator`, the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
+| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
 | Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
+
+---
+
+## Frontend
+
+The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity and the shared components, and the pages (sign-in, sign-up and documents) come next.
+
+### Running the frontend
+
+Prerequisite: [Node.js](https://nodejs.org) 20.19 or newer. Start the API first (see [Starting the API](#starting-the-api)), then:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The app opens at `http://localhost:5173`.
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Starts the development server with hot reload |
+| `npm run build` | Checks the types and builds the production files into `frontend/dist/` |
+| `npm run lint` | Runs the linter (oxlint) |
+| `npm run preview` | Serves the production build locally |
+
+### How the frontend talks to the API
+
+- The API has no CORS configuration, so the browser does not call it directly. In development, the Vite server forwards every `/api` request to `http://localhost:5297` (see `frontend/vite.config.ts`).
+- All the calls go through `apiRequest` in `frontend/src/api/client.ts`. It adds the `/api` prefix and the `Bearer` token, and every failure becomes an `ApiError` with the HTTP status and a `code`.
+- The `code` is the same as in [Error format](#error-format). The client adds two codes of its own: `NETWORK_ERROR` (the API could not be reached, for example because it is not running) and `UNKNOWN_ERROR` (an answer that did not come in the API format).
+- `frontend/src/api/errorMessages.ts` turns a code into the text shown to the user. Most codes use the API message; session, network and server errors have their own text.
+
+### Structure
+
+```
+frontend/
+├── index.html
+├── vite.config.ts           # Dev server and /api proxy
+└── src/
+    ├── main.tsx             # Entry point
+    ├── App.tsx              # Root component
+    ├── index.css            # Visual identity: colors, fonts, sizes and spacing as CSS variables
+    ├── api/                 # API client, request/response types and error messages
+    └── shared/              # Shared components: Button, Input, PageLayout
+```
+
+The visual identity uses only system fonts and no external server: the page does not load fonts, scripts or styles from the internet.
+
+The CI pipeline does not build the frontend yet.
 
 ---
 
@@ -261,7 +314,7 @@ The `DbInitializer` solves this when the application starts:
 
 1. **Applies the pending migrations** (`Database.MigrateAsync()`). The database is created if it does not exist yet.
 2. **Checks whether any user with the `Admin` role already exists.** If one exists, it does nothing. The operation is idempotent and safe to run at every startup.
-3. **If a user with the default admin email exists, but without the role**, it promotes that user to `Admin`.
+3. **If a normal user already has the default admin email**, the API stops at startup with a clear message. It never promotes that user, because the person who created it does not know the seed password. On the first start this cannot happen, because the seed runs before the API accepts requests; it can happen later, if no admin exists anymore (for example, after a database restore or a manual change in the database). To fix it, delete or rename that user in the database and start the API again.
 4. **Otherwise, it creates the initial admin**, with the password going through the same `IPasswordHasher` used in the register and login flow.
 
 Initial admin credentials:
@@ -359,8 +412,8 @@ Request body for `POST` and `PUT`:
 
 - The email must be valid, from any domain, and unique in the database; it is validated on registration and on update
 - The email is normalized (trimmed and lowercased) before validating, searching or saving
-- The name is required, with at most 100 characters
-- The password has at least 8 characters, cannot be only spaces, and is confirmed on registration
+- The name is required, with at most 100 characters; it is trimmed before validating and saving
+- The password has from 8 to 128 characters, cannot be only spaces, and is confirmed on registration
 - Sign-up is public and always creates an account with the `User` role; a role sent in the request body is ignored
 - Sign-up, login and password change are limited to 5 attempts per minute per IP, and refresh to 30; above that the API responds with `429`
 - The refresh token is valid for 7 days, can be used only once (each use generates a new one) and is stored only as a SHA-256 hash
@@ -388,7 +441,7 @@ The API error responses have the same format, with a stable `code` (for the clie
 
 | Status | Codes |
 |---|---|
-| `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `NAME_TOO_LONG`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID`, `TYPE_REQUIRED`, `TYPE_TOO_LONG`, `NUMBER_REQUIRED`, `NUMBER_TOO_LONG`, `DESCRIPTION_TOO_LONG`, `ISSUED_AT_REQUIRED`, `ISSUED_AT_IN_FUTURE`, `EXPIRES_AT_BEFORE_ISSUED_AT` |
+| `400` | `INVALID_REQUEST`, `NAME_REQUIRED`, `NAME_TOO_LONG`, `EMAIL_REQUIRED`, `EMAIL_INVALID`, `PASSWORD_REQUIRED`, `PASSWORD_TOO_SHORT`, `PASSWORD_TOO_LONG`, `PASSWORDS_DO_NOT_MATCH`, `ROLE_INVALID`, `CANNOT_CHANGE_OWN_ROLE`, `CANNOT_DELETE_OWN_USER`, `CURRENT_PASSWORD_REQUIRED`, `CURRENT_PASSWORD_INCORRECT`, `NEW_PASSWORD_SAME_AS_CURRENT`, `REFRESH_TOKEN_REQUIRED`, `PAGE_INVALID`, `PAGE_SIZE_INVALID`, `TYPE_REQUIRED`, `TYPE_TOO_LONG`, `NUMBER_REQUIRED`, `NUMBER_TOO_LONG`, `DESCRIPTION_TOO_LONG`, `ISSUED_AT_REQUIRED`, `ISSUED_AT_IN_FUTURE`, `EXPIRES_AT_BEFORE_ISSUED_AT` |
 | `401` | `INVALID_CREDENTIALS`, `INVALID_REFRESH_TOKEN`, `UNAUTHORIZED` |
 | `403` | `FORBIDDEN` |
 | `404` | `USER_NOT_FOUND`, `DOCUMENT_NOT_FOUND` |
