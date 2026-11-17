@@ -10,6 +10,7 @@ public static class ApiErrors
     public static readonly ErrorResponse EmailInvalid = new() { Code = "EMAIL_INVALID", Message = "Email is invalid" };
     public static readonly ErrorResponse PasswordRequired = new() { Code = "PASSWORD_REQUIRED", Message = "Password is required" };
     public static readonly ErrorResponse PasswordTooShort = new() { Code = "PASSWORD_TOO_SHORT", Message = "Password must be at least 8 characters long" };
+    public static readonly ErrorResponse PasswordTooLong = new() { Code = "PASSWORD_TOO_LONG", Message = "Password must have at most 128 characters" };
     public static readonly ErrorResponse PasswordsDoNotMatch = new() { Code = "PASSWORDS_DO_NOT_MATCH", Message = "Passwords do not match" };
     public static readonly ErrorResponse RoleInvalid = new() { Code = "ROLE_INVALID", Message = "Role must be Admin or User" };
     public static readonly ErrorResponse CannotChangeOwnRole = new() { Code = "CANNOT_CHANGE_OWN_ROLE", Message = "You cannot change your own role" };

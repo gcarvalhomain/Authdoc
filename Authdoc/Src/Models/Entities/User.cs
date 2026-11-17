@@ -6,6 +6,7 @@ public class User
 {
     public const int NameMaxLength = 100;
     public const int PasswordMinLength = 8;
+    public const int PasswordMaxLength = 128;
 
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Email { get; set; } = string.Empty;

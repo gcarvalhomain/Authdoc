@@ -151,6 +151,11 @@ public static class EndpointsAuth
             return ApiErrors.PasswordTooShort;
         }
 
+        if (request.Password.Length > User.PasswordMaxLength)
+        {
+            return ApiErrors.PasswordTooLong;
+        }
+
         if (request.Password != request.ConfirmationPassword)
         {
             return ApiErrors.PasswordsDoNotMatch;
@@ -174,6 +179,11 @@ public static class EndpointsAuth
         if (request.NewPassword.Length < User.PasswordMinLength)
         {
             return ApiErrors.PasswordTooShort;
+        }
+
+        if (request.NewPassword.Length > User.PasswordMaxLength)
+        {
+            return ApiErrors.PasswordTooLong;
         }
 
         if (request.NewPassword != request.ConfirmationPassword)

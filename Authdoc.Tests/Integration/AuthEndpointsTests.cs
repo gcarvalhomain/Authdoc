@@ -174,6 +174,48 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task Register_WithTooLongPassword_Returns400PasswordTooLong()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+        var longPassword = new string('a', 129);
+
+        // Act
+        var response = await adminClient.PostAsJsonAsync("/api/auth/register", new
+        {
+            name = "Long Password",
+            email = "longpassword@gmail.com",
+            password = longPassword,
+            confirmationPassword = longPassword
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("PASSWORD_TOO_LONG", error!.Code);
+    }
+
+    [Fact]
+    public async Task Register_WithPasswordAtMaxLength_Returns201()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+        var maxPassword = new string('a', 128);
+
+        // Act
+        var response = await adminClient.PostAsJsonAsync("/api/auth/register", new
+        {
+            name = "Max Password",
+            email = "maxpassword@gmail.com",
+            password = maxPassword,
+            confirmationPassword = maxPassword
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Register_WithOnlySpacesPassword_Returns400PasswordRequired()
     {
         // Arrange
