@@ -100,6 +100,37 @@ public class AuthEndpointsTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task Login_WithTooLongPassword_Returns401InvalidCredentials()
+    {
+        // Arrange
+        var client = _factory.CreateClient();
+
+        // Act
+        var response = await client.PostAsJsonAsync("/api/auth/login",
+            new { email = AuthdocApiFactory.AdminEmail, password = new string('a', 129) });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("INVALID_CREDENTIALS", error!.Code);
+    }
+
+    [Fact]
+    public async Task Login_WithPasswordAtMaxLength_ReturnsToken()
+    {
+        // Arrange
+        var password = new string('a', 128);
+        var adminClient = await _factory.CreateAdminClientAsync();
+        await adminClient.RegisterUserAsync("login-max-length@gmail.com", password);
+
+        // Act
+        var login = await _factory.CreateClient().LoginAsync("login-max-length@gmail.com", password);
+
+        // Assert
+        Assert.False(string.IsNullOrWhiteSpace(login.Token));
+    }
+
+    [Fact]
     public async Task Me_WithoutToken_Returns401Unauthorized()
     {
         // Arrange

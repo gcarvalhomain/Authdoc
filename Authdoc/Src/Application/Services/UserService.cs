@@ -57,13 +57,15 @@ public class UserService
         };
     }
 
-    public async Task<UpdateUserResult> UpdateAsync(Guid id, UpdateUserRequest request)
+    // Returns the saved user with the result, so the endpoint does not read the user again.
+    // A second read could find nothing if another request deleted the user in the meantime.
+    public async Task<(UpdateUserResult Result, UserResponse? User)> UpdateAsync(Guid id, UpdateUserRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
 
         if (user is null)
         {
-            return UpdateUserResult.UserNotFound;
+            return (UpdateUserResult.UserNotFound, null);
         }
 
         user.Name = request.Name;
@@ -76,24 +78,25 @@ public class UserService
         }
         catch (DbUpdateException exception) when (exception.IsUniqueViolation())
         {
-            return UpdateUserResult.EmailAlreadyInUse;
+            return (UpdateUserResult.EmailAlreadyInUse, null);
         }
 
-        return UpdateUserResult.Updated;
+        return (UpdateUserResult.Updated, UserResponse.From(user));
     }
 
-    public async Task<ChangeRoleResult> ChangeRoleAsync(Guid id, UserRole role)
+    // Same idea as UpdateAsync: the user comes back with the result.
+    public async Task<(ChangeRoleResult Result, UserResponse? User)> ChangeRoleAsync(Guid id, UserRole role)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
 
         if (user is null)
         {
-            return ChangeRoleResult.UserNotFound;
+            return (ChangeRoleResult.UserNotFound, null);
         }
 
         if (user.Role == role)
         {
-            return ChangeRoleResult.Success;
+            return (ChangeRoleResult.Success, UserResponse.From(user));
         }
 
         if (user.Role == UserRole.Admin)
@@ -101,7 +104,7 @@ public class UserService
             var adminCount = await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
             if (adminCount <= 1)
             {
-                return ChangeRoleResult.LastAdmin;
+                return (ChangeRoleResult.LastAdmin, null);
             }
         }
 
@@ -109,7 +112,7 @@ public class UserService
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
-        return ChangeRoleResult.Success;
+        return (ChangeRoleResult.Success, UserResponse.From(user));
     }
 
     public async Task<DeleteUserResult> DeleteAsync(Guid id)

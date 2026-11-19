@@ -1,3 +1,4 @@
+using Authdoc.Application.DTOs;
 using Authdoc.Application.Services;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
@@ -144,10 +145,11 @@ public class UserServiceTests
         var service = new UserService(context);
 
         // Act
-        var result = await service.ChangeRoleAsync(admin.Id, UserRole.User);
+        var (result, updatedUser) = await service.ChangeRoleAsync(admin.Id, UserRole.User);
 
         // Assert
         Assert.Equal(ChangeRoleResult.LastAdmin, result);
+        Assert.Null(updatedUser);
         Assert.Equal(UserRole.Admin, admin.Role);
     }
 
@@ -163,10 +165,67 @@ public class UserServiceTests
         var service = new UserService(context);
 
         // Act
-        var result = await service.ChangeRoleAsync(user.Id, UserRole.Admin);
+        var (result, updatedUser) = await service.ChangeRoleAsync(user.Id, UserRole.Admin);
 
         // Assert
         Assert.Equal(ChangeRoleResult.Success, result);
         Assert.Equal(UserRole.Admin, user.Role);
+        Assert.Equal(user.Id, updatedUser!.Id);
+        Assert.Equal("Admin", updatedUser.Role);
+    }
+
+    [Fact]
+    public async Task ChangeRoleAsync_WhenRoleIsTheSame_ReturnsSuccessWithUser()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = new User { Name = "User", Email = "same-role@gmail.com" };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        var (result, updatedUser) = await service.ChangeRoleAsync(user.Id, UserRole.User);
+
+        // Assert
+        Assert.Equal(ChangeRoleResult.Success, result);
+        Assert.Equal("User", updatedUser!.Role);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenUserExists_ReturnsUpdatedUser()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = new User { Name = "Old Name", Email = "old-email@gmail.com" };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        var (result, updatedUser) = await service.UpdateAsync(user.Id,
+            new UpdateUserRequest { Name = "New Name", Email = "new-email@gmail.com" });
+
+        // Assert
+        Assert.Equal(UpdateUserResult.Updated, result);
+        Assert.Equal(user.Id, updatedUser!.Id);
+        Assert.Equal("New Name", updatedUser.Name);
+        Assert.Equal("new-email@gmail.com", updatedUser.Email);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenUserDoesNotExist_ReturnsUserNotFoundWithoutUser()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var service = new UserService(context);
+
+        // Act
+        var (result, updatedUser) = await service.UpdateAsync(Guid.NewGuid(),
+            new UpdateUserRequest { Name = "Nobody", Email = "nobody@gmail.com" });
+
+        // Assert
+        Assert.Equal(UpdateUserResult.UserNotFound, result);
+        Assert.Null(updatedUser);
     }
 }

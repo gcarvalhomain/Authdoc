@@ -65,6 +65,13 @@ public class AuthService
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
+        // No saved password is longer than the limit, so this one cannot be right.
+        // Stop here, before the slow hashing work.
+        if (request.Password.Length > User.PasswordMaxLength)
+        {
+            return null;
+        }
+
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Email == request.Email);
         if (user is null)
         {
@@ -105,6 +112,12 @@ public class AuthService
         if (user is null)
         {
             return ChangePasswordResult.UserNotFound;
+        }
+
+        // Same reason as in LoginAsync: a too long password cannot be right, so it is not hashed.
+        if (request.CurrentPassword.Length > User.PasswordMaxLength)
+        {
+            return ChangePasswordResult.WrongCurrentPassword;
         }
 
         var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.CurrentPassword);
