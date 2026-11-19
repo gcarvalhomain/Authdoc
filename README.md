@@ -227,7 +227,7 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
+| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `AuthService` rules (a too long password is never hashed), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
 | Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
@@ -416,6 +416,7 @@ Request body for `POST` and `PUT`:
 - The email is normalized (trimmed and lowercased) before validating, searching or saving
 - The name is required, with at most 100 characters; it is trimmed before validating and saving
 - The password has from 8 to 128 characters, cannot be only spaces, and is confirmed on registration
+- A password longer than 128 characters is never hashed: on login the answer is `401 INVALID_CREDENTIALS`, and as the current password in a password change it is `400 CURRENT_PASSWORD_INCORRECT` (the same answers as a wrong password)
 - Sign-up is public and always creates an account with the `User` role; a role sent in the request body is ignored
 - Sign-up, login and password change are limited to 5 attempts per minute per IP, and refresh to 30; above that the API responds with `429`
 - The refresh token is valid for 7 days, can be used only once (each use generates a new one) and is stored only as a SHA-256 hash

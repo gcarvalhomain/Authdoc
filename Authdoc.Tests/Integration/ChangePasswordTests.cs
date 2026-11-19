@@ -71,6 +71,26 @@ public class ChangePasswordTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task ChangePassword_WithTooLongCurrentPassword_Returns400CurrentPasswordIncorrect()
+    {
+        // Arrange
+        var (client, _) = await CreateUserClientAsync("change-current-too-long@gmail.com");
+
+        // Act
+        var response = await client.PutAsJsonAsync("/api/auth/password", new
+        {
+            currentPassword = new string('a', 129),
+            newPassword = "novaSenha456",
+            confirmationPassword = "novaSenha456"
+        });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("CURRENT_PASSWORD_INCORRECT", error!.Code);
+    }
+
+    [Fact]
     public async Task ChangePassword_WithSevenCharacterPassword_Returns400PasswordTooShort()
     {
         // Arrange
