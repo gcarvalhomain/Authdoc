@@ -18,7 +18,9 @@ const messages: Record<string, string> = {
 // Returns the text to show to the user for an error that a page caught.
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return messages[error.code] ?? error.message
+    // Object.hasOwn ignores names that every object has, like "toString":
+    // messages["toString"] would return a function, not a text.
+    return Object.hasOwn(messages, error.code) ? messages[error.code] : error.message
   }
 
   // Not an error from apiRequest, so it is a mistake in the frontend code.
