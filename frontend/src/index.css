@@ -70,3 +70,11 @@ h3 {
 small {
   font-size: var(--size-small);
 }
+
+a {
+  color: var(--color-primary);
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
