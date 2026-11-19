@@ -73,11 +73,13 @@ small {
   font-size: var(--size-small);
 }
 
-/* A link that looks like a button keeps the colors of the button. */
-a:not(.button) {
+/* The default color of a link. :where() gives this rule the lowest priority,
+   so a link with its own class (the logo, a link that looks like a button)
+   keeps its own colors. */
+a:where(:not(.button)) {
   color: var(--color-primary);
 }
 
-a:not(.button):hover {
+a:where(:not(.button)):hover {
   color: var(--color-primary-hover);
 }
