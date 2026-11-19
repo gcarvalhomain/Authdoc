@@ -75,7 +75,7 @@ Today Authdoc is an **identity and user management API** in which each user can 
 | Documentation | OpenAPI + [Scalar](https://scalar.com) |
 | Tests | xUnit + `WebApplicationFactory` + EF Core InMemory |
 | CI/CD | Azure Pipelines + Azure App Service |
-| Frontend | React 19 + TypeScript + Vite, linted with oxlint |
+| Frontend | React 19 + TypeScript + Vite + React Router, linted with oxlint |
 
 ## Concepts and fundamentals applied
 
@@ -236,7 +236,7 @@ The tests use an **in-memory** database and their own configuration, so they do 
 
 ## Frontend
 
-The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity and the shared components, and the pages (sign-in, sign-up and documents) come next.
+The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity, the shared components and the sign-in and sign-up pages. The session (saving the token and refreshing it) and the documents pages come next.
 
 ### Running the frontend
 
@@ -263,6 +263,20 @@ The app opens at `http://localhost:5173`.
 - All the calls go through `apiRequest` in `frontend/src/api/client.ts`. It adds the `/api` prefix and the `Bearer` token, and every failure becomes an `ApiError` with the HTTP status and a `code`.
 - The `code` is the same as in [Error format](#error-format). The client adds two codes of its own: `NETWORK_ERROR` (the API could not be reached, for example because it is not running) and `UNKNOWN_ERROR` (an answer that did not come in the API format).
 - `frontend/src/api/errorMessages.ts` turns a code into the text shown to the user. Most codes use the API message; session, network and server errors have their own text.
+- `frontend/src/api/formErrors.ts` decides where a form shows an error: each form maps its validation codes to its fields (for example `EMAIL_INVALID` → the email field), and any other error shows at the top of the form. On the sign-in page, `INVALID_CREDENTIALS` always shows at the top, so the page does not tell whether the email or the password is wrong.
+
+### Pages
+
+The routes are in `frontend/src/App.tsx` (React Router).
+
+| Route | Page |
+|---|---|
+| `/` | Home, with links to sign in and to create an account |
+| `/login` | Sign in. For now it only shows who signed in; saving the session comes in the next step |
+| `/register` | Create an account. After it, the sign-in page opens with the email already filled in |
+| any other | Page not found |
+
+The development server answers every route with `index.html`, so a page also opens when you type its address or reload it. A production server needs the same rule.
 
 ### Structure
 
@@ -271,11 +285,12 @@ frontend/
 ├── index.html
 ├── vite.config.ts           # Dev server and /api proxy
 └── src/
-    ├── main.tsx             # Entry point
-    ├── App.tsx              # Root component
+    ├── main.tsx             # Entry point, with the router
+    ├── App.tsx              # Routes: which page each address shows
     ├── index.css            # Visual identity: colors, fonts, sizes and spacing as CSS variables
-    ├── api/                 # API client, request/response types and error messages
-    └── shared/              # Shared components: Button, Input, PageLayout
+    ├── api/                 # API client, auth calls, request/response types and error messages
+    ├── pages/               # One component per page: Home, Login, Register, NotFound
+    └── shared/              # Shared components: Alert, Button, Input, PageLayout
 ```
 
 The visual identity uses only system fonts and no external server: the page does not load fonts, scripts or styles from the internet.
