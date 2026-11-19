@@ -1,13 +1,28 @@
 import { useState, type SubmitEvent } from 'react'
 import { Link, useLocation } from 'react-router'
 import { login } from '../api/auth.ts'
-import { getErrorMessage } from '../api/errorMessages.ts'
+import {
+  emptyFormErrors,
+  hasFormErrors,
+  toFormErrors,
+  type FieldByCode,
+  type FormErrors,
+} from '../api/formErrors.ts'
 import type { UserResponse } from '../api/types.ts'
 import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import Input from '../shared/Input.tsx'
 import PageLayout from '../shared/PageLayout.tsx'
 import './AuthPage.css'
+
+type LoginField = 'email' | 'password'
+
+// A wrong email or password is INVALID_CREDENTIALS, which is not in this map, so it
+// shows at the top of the form: the page must not tell which of the two is wrong.
+const fieldByCode: FieldByCode<LoginField> = {
+  EMAIL_REQUIRED: 'email',
+  PASSWORD_REQUIRED: 'password',
+}
 
 // The sign-up page sends { registeredEmail } after it creates an account.
 // The state can be anything (or nothing), so each part is checked before it is used.
@@ -32,21 +47,21 @@ function LoginPage() {
   // Calling the "set" function changes the value and draws the page again.
   const [email, setEmail] = useState(registeredEmail ?? '')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<FormErrors<LoginField>>(emptyFormErrors)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [signedInUser, setSignedInUser] = useState<UserResponse | null>(null)
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     // Without this, the browser would reload the page to send the form.
     event.preventDefault()
-    setError(null)
+    setErrors(emptyFormErrors())
     setIsSubmitting(true)
 
     try {
       const response = await login({ email, password })
       setSignedInUser(response.user)
     } catch (caught) {
-      setError(getErrorMessage(caught))
+      setErrors(toFormErrors(caught, fieldByCode))
     } finally {
       setIsSubmitting(false)
     }
@@ -70,8 +85,8 @@ function LoginPage() {
         <h1>Sign in</h1>
         <p className="auth-subtitle">Access your documents.</p>
 
-        {error && <Alert variant="error">{error}</Alert>}
-        {!error && registeredEmail && (
+        {errors.form && <Alert variant="error">{errors.form}</Alert>}
+        {!hasFormErrors(errors) && registeredEmail && (
           <Alert variant="success">Your account was created. Sign in to continue.</Alert>
         )}
 
@@ -85,6 +100,7 @@ function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={setEmail}
+            error={errors.fields.email}
             disabled={isSubmitting}
           />
           <Input
@@ -94,6 +110,7 @@ function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={setPassword}
+            error={errors.fields.password}
             disabled={isSubmitting}
           />
           <Button type="submit" variant="primary" disabled={isSubmitting}>
