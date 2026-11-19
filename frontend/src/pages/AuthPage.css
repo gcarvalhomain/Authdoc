@@ -1,0 +1,27 @@
+/* The sign-in and sign-up pages show their form in a card in the middle of the page. */
+.auth-card {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: var(--space-24);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.auth-subtitle {
+  margin: 0 0 var(--space-24);
+  color: var(--color-text-secondary);
+}
+
+/* The submit button uses the full width of the card. */
+.auth-form .button {
+  width: 100%;
+}
+
+.auth-footer {
+  margin: var(--space-24) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--size-small);
+  text-align: center;
+}

@@ -8,6 +8,9 @@ type InputProps = {
   type?: 'text' | 'email' | 'password' | 'date'
   error?: string
   disabled?: boolean
+  // Tells the browser what the field is, so it can fill it in or save it,
+  // for example "email", "current-password" or "new-password".
+  autoComplete?: string
 }
 
 function Input({
@@ -18,6 +21,7 @@ function Input({
   type = 'text',
   error,
   disabled = false,
+  autoComplete,
 }: InputProps) {
   return (
     <div className="field">
@@ -31,6 +35,7 @@ function Input({
         type={type}
         value={value}
         disabled={disabled}
+        autoComplete={autoComplete}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}
         onChange={(event) => onChange(event.target.value)}

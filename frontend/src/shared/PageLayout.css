@@ -23,6 +23,7 @@
   font-size: var(--size-h3);
   font-weight: 600;
   color: var(--color-text-primary);
+  text-decoration: none;
 }
 
 .page-content {

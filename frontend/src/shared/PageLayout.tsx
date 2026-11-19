@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 import './PageLayout.css'
 
 type PageLayoutProps = {
@@ -12,7 +13,9 @@ function PageLayout({ children }: PageLayoutProps) {
     <div className="page">
       <header className="page-header">
         <div className="page-header-content">
-          <span className="logo">Authdoc</span>
+          <Link className="logo" to="/">
+            Authdoc
+          </Link>
         </div>
       </header>
 
