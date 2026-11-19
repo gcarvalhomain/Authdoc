@@ -2,6 +2,7 @@ import { Route, Routes } from 'react-router'
 import HomePage from './pages/HomePage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
+import RegisterPage from './pages/RegisterPage.tsx'
 
 // The map of the app: each address shows one page.
 // It works like the MapGet calls in the API, but in the browser.
@@ -10,6 +11,7 @@ function App() {
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       {/* "*" matches any address that no route above matched. */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

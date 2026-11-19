@@ -12,6 +12,9 @@ function HomePage() {
         <Link className="button button-primary" to="/login">
           Sign in
         </Link>
+        <Link className="button button-secondary" to="/register">
+          Create account
+        </Link>
       </div>
     </PageLayout>
   )

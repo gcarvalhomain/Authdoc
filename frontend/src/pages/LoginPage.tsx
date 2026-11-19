@@ -1,4 +1,5 @@
 import { useState, type SubmitEvent } from 'react'
+import { Link, useLocation } from 'react-router'
 import { login } from '../api/auth.ts'
 import { getErrorMessage } from '../api/errorMessages.ts'
 import type { UserResponse } from '../api/types.ts'
@@ -8,10 +9,28 @@ import Input from '../shared/Input.tsx'
 import PageLayout from '../shared/PageLayout.tsx'
 import './AuthPage.css'
 
+// The sign-up page sends { registeredEmail } after it creates an account.
+// The state can be anything (or nothing), so each part is checked before it is used.
+function readRegisteredEmail(state: unknown): string | null {
+  if (
+    typeof state === 'object' &&
+    state !== null &&
+    'registeredEmail' in state &&
+    typeof state.registeredEmail === 'string'
+  ) {
+    return state.registeredEmail
+  }
+
+  return null
+}
+
 function LoginPage() {
+  const location = useLocation()
+  const registeredEmail = readRegisteredEmail(location.state)
+
   // Each useState keeps one value between renders, like a field of a class in C#.
   // Calling the "set" function changes the value and draws the page again.
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(registeredEmail ?? '')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -52,6 +71,9 @@ function LoginPage() {
         <p className="auth-subtitle">Access your documents.</p>
 
         {error && <Alert variant="error">{error}</Alert>}
+        {!error && registeredEmail && (
+          <Alert variant="success">Your account was created. Sign in to continue.</Alert>
+        )}
 
         {/* noValidate turns off the browser checks, so the messages come
             from the API and look the same in every browser. */}
@@ -78,6 +100,10 @@ function LoginPage() {
             {isSubmitting ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
+
+        <p className="auth-footer">
+          Don't have an account? <Link to="/register">Create one</Link>
+        </p>
       </div>
     </PageLayout>
   )
