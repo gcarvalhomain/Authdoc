@@ -1,4 +1,7 @@
+/* A link (<a>) can use these classes too, to look like a button. */
 .button {
+  display: inline-block;
+  text-decoration: none;
   padding: var(--space-8) var(--space-16);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-control);

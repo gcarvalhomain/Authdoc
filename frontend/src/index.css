@@ -9,8 +9,10 @@
   --color-primary-hover: #244A6E;
   --color-primary-subtle: #E8EEF5;
   --color-success: #2E7D5B;
+  --color-success-subtle: #EAF4EF;
   --color-warning: #B7791F;
   --color-danger: #C0392B;
+  --color-danger-subtle: #FBEDEB;
 
   /* Fonts */
   --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -71,10 +73,11 @@ small {
   font-size: var(--size-small);
 }
 
-a {
+/* A link that looks like a button keeps the colors of the button. */
+a:not(.button) {
   color: var(--color-primary);
 }
 
-a:hover {
+a:not(.button):hover {
   color: var(--color-primary-hover);
 }

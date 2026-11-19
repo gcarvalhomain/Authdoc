@@ -1,0 +1,86 @@
+import { useState, type SubmitEvent } from 'react'
+import { login } from '../api/auth.ts'
+import { getErrorMessage } from '../api/errorMessages.ts'
+import type { UserResponse } from '../api/types.ts'
+import Alert from '../shared/Alert.tsx'
+import Button from '../shared/Button.tsx'
+import Input from '../shared/Input.tsx'
+import PageLayout from '../shared/PageLayout.tsx'
+import './AuthPage.css'
+
+function LoginPage() {
+  // Each useState keeps one value between renders, like a field of a class in C#.
+  // Calling the "set" function changes the value and draws the page again.
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [signedInUser, setSignedInUser] = useState<UserResponse | null>(null)
+
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
+    // Without this, the browser would reload the page to send the form.
+    event.preventDefault()
+    setError(null)
+    setIsSubmitting(true)
+
+    try {
+      const response = await login({ email, password })
+      setSignedInUser(response.user)
+    } catch (caught) {
+      setError(getErrorMessage(caught))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Temporary: step 5 saves the session and opens the logged-in area here.
+  if (signedInUser) {
+    return (
+      <PageLayout>
+        <div className="auth-card">
+          <h1>Signed in</h1>
+          <Alert variant="success">You are signed in as {signedInUser.name}.</Alert>
+        </div>
+      </PageLayout>
+    )
+  }
+
+  return (
+    <PageLayout>
+      <div className="auth-card">
+        <h1>Sign in</h1>
+        <p className="auth-subtitle">Access your documents.</p>
+
+        {error && <Alert variant="error">{error}</Alert>}
+
+        {/* noValidate turns off the browser checks, so the messages come
+            from the API and look the same in every browser. */}
+        <form className="auth-form" onSubmit={handleSubmit} noValidate>
+          <Input
+            label="Email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={setEmail}
+            disabled={isSubmitting}
+          />
+          <Input
+            label="Password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={setPassword}
+            disabled={isSubmitting}
+          />
+          <Button type="submit" variant="primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
+      </div>
+    </PageLayout>
+  )
+}
+
+export default LoginPage
