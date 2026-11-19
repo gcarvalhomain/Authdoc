@@ -62,7 +62,7 @@ public static class EndpointsUser
                     return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
 
-                var result = await userService.UpdateAsync(id, request);
+                var (result, user) = await userService.UpdateAsync(id, request);
                 if (result == UpdateUserResult.UserNotFound)
                 {
                     return Results.NotFound(ApiErrors.UserNotFound);
@@ -72,8 +72,6 @@ public static class EndpointsUser
                 {
                     return Results.Conflict(ApiErrors.EmailAlreadyInUse);
                 }
-
-                var user = await userService.GetByIdAsync(id);
 
                 return Results.Ok(user);
             })
@@ -92,7 +90,7 @@ public static class EndpointsUser
                     return Results.BadRequest(ApiErrors.CannotChangeOwnRole);
                 }
 
-                var result = await userService.ChangeRoleAsync(id, role.Value);
+                var (result, user) = await userService.ChangeRoleAsync(id, role.Value);
                 if (result == ChangeRoleResult.UserNotFound)
                 {
                     return Results.NotFound(ApiErrors.UserNotFound);
@@ -102,8 +100,6 @@ public static class EndpointsUser
                 {
                     return Results.Conflict(ApiErrors.LastAdmin);
                 }
-
-                var user = await userService.GetByIdAsync(id);
 
                 return Results.Ok(user);
             })

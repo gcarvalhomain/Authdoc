@@ -127,4 +127,21 @@ public class UserEndpointsTests : IClassFixture<AuthdocApiFactory>
         var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         Assert.Equal("ROLE_INVALID", error!.Code);
     }
+
+    [Fact]
+    public async Task ChangeRole_WhenPromotingUser_Returns200WithUpdatedUser()
+    {
+        // Arrange
+        var adminClient = await _factory.CreateAdminClientAsync();
+        var user = await adminClient.RegisterUserAsync("role-promoted-body@gmail.com");
+
+        // Act
+        var response = await adminClient.PatchAsJsonAsync($"/api/users/{user.Id}/role", new { role = "Admin" });
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var updatedUser = await response.Content.ReadFromJsonAsync<UserResponse>();
+        Assert.Equal(user.Id, updatedUser!.Id);
+        Assert.Equal("Admin", updatedUser.Role);
+    }
 }
