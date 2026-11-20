@@ -101,6 +101,21 @@ public static class EndpointsAuth
         })
         .RequireRateLimiting("refresh");
 
+        // Public, like refresh: the access token may be expired when the user signs out,
+        // and the refresh token is the proof of the session. The answer is always 204,
+        // so it does not tell whether a token exists.
+        app.MapPost("/api/auth/logout", async (RefreshTokenRequest request, AuthService authService) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                return Results.BadRequest(ApiErrors.RefreshTokenRequired);
+            }
+
+            await authService.LogoutAsync(request.RefreshToken);
+            return Results.NoContent();
+        })
+        .RequireRateLimiting("refresh");
+
         // Reads the user from the database, not from the token: the name and the email
         // in the token can be old, because an admin can change them after the login.
         app.MapGet("/api/auth/me", async (ClaimsPrincipal currentUser, UserService userService) =>

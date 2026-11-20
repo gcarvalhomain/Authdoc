@@ -106,6 +106,25 @@ public class AuthService
         return await CreateSessionAsync(storedToken.User);
     }
 
+    // Ends one session: the refresh token of this device stops working.
+    // The other sessions of the user stay active. An unknown, expired or already
+    // revoked token is not an error, because the result is the same: that token
+    // cannot be used anymore.
+    public async Task LogoutAsync(string refreshToken)
+    {
+        var tokenHash = HashToken(refreshToken);
+        var storedToken = await _context.RefreshTokens
+            .FirstOrDefaultAsync(token => token.TokenHash == tokenHash);
+
+        if (storedToken is null || storedToken.RevokedAt is not null)
+        {
+            return;
+        }
+
+        storedToken.RevokedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
     {
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == userId);

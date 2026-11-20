@@ -73,6 +73,58 @@ public class AuthServiceTests
         Assert.Equal(0, hasher.Calls);
     }
 
+    [Fact]
+    public async Task LogoutAsync_WithActiveToken_RevokesIt()
+    {
+        // Arrange
+        using var context = CreateContext();
+        await AddUserAsync(context, "logout-active@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var login = await service.LoginAsync(new LoginRequest { Email = "logout-active@gmail.com", Password = "senha123" });
+
+        // Act
+        await service.LogoutAsync(login!.RefreshToken);
+
+        // Assert
+        var storedToken = await context.RefreshTokens.SingleAsync();
+        Assert.NotNull(storedToken.RevokedAt);
+    }
+
+    [Fact]
+    public async Task LogoutAsync_WithAlreadyRevokedToken_KeepsTheFirstRevokedAt()
+    {
+        // Arrange
+        using var context = CreateContext();
+        await AddUserAsync(context, "logout-twice@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var login = await service.LoginAsync(new LoginRequest { Email = "logout-twice@gmail.com", Password = "senha123" });
+        await service.LogoutAsync(login!.RefreshToken);
+        var firstRevokedAt = (await context.RefreshTokens.SingleAsync()).RevokedAt;
+
+        // Act
+        await service.LogoutAsync(login.RefreshToken);
+
+        // Assert
+        var storedToken = await context.RefreshTokens.SingleAsync();
+        Assert.Equal(firstRevokedAt, storedToken.RevokedAt);
+    }
+
+    // LoginAsync creates a JWT, so these tests need the Jwt settings.
+    private static AuthService CreateServiceWithJwt(ManagerDbContext context)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = "a-test-signing-key-with-at-least-32-bytes",
+                ["Jwt:Issuer"] = "Authdoc",
+                ["Jwt:Audience"] = "Users",
+                ["Jwt:ExpirationInMinutes"] = "60"
+            })
+            .Build();
+
+        return new AuthService(context, new PasswordHasher<User>(), configuration);
+    }
+
     // Counts every hash and verify, to prove that a too long password is never hashed.
     private sealed class CountingPasswordHasher : IPasswordHasher<User>
     {
