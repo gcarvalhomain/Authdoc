@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { login } from '../api/auth.ts'
 import {
   emptyFormErrors,
@@ -8,7 +8,7 @@ import {
   type FieldByCode,
   type FormErrors,
 } from '../api/formErrors.ts'
-import type { UserResponse } from '../api/types.ts'
+import { useAuth } from '../auth/AuthContext.ts'
 import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import Input from '../shared/Input.tsx'
@@ -41,6 +41,8 @@ function readRegisteredEmail(state: unknown): string | null {
 
 function LoginPage() {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { signIn } = useAuth()
   const registeredEmail = readRegisteredEmail(location.state)
 
   // Each useState keeps one value between renders, like a field of a class in C#.
@@ -49,7 +51,6 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<FormErrors<LoginField>>(emptyFormErrors)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [signedInUser, setSignedInUser] = useState<UserResponse | null>(null)
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     // Without this, the browser would reload the page to send the form.
@@ -59,24 +60,13 @@ function LoginPage() {
 
     try {
       const response = await login({ email, password })
-      setSignedInUser(response.user)
+      signIn(response)
+      // replace: the Back button does not return to the sign-in form.
+      navigate('/', { replace: true })
     } catch (caught) {
       setErrors(toFormErrors(caught, fieldByCode))
-    } finally {
       setIsSubmitting(false)
     }
-  }
-
-  // Temporary: step 5 saves the session and opens the logged-in area here.
-  if (signedInUser) {
-    return (
-      <PageLayout>
-        <div className="auth-card">
-          <h1>Signed in</h1>
-          <Alert variant="success">You are signed in as {signedInUser.name}.</Alert>
-        </div>
-      </PageLayout>
-    )
   }
 
   return (

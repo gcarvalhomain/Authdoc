@@ -1,9 +1,21 @@
 import { Link } from 'react-router'
+import { useAuth } from '../auth/AuthContext.ts'
 import PageLayout from '../shared/PageLayout.tsx'
 import '../shared/Button.css'
 import './HomePage.css'
 
 function HomePage() {
+  const { auth } = useAuth()
+
+  if (auth.status === 'signedIn') {
+    return (
+      <PageLayout>
+        <h1>Welcome back, {auth.user.name}</h1>
+        <p>A personal document vault.</p>
+      </PageLayout>
+    )
+  }
+
   return (
     <PageLayout>
       <h1>Welcome</h1>
