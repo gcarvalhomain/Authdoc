@@ -41,6 +41,12 @@
   color: var(--color-text-primary);
 }
 
+/* The button keeps its size and its text on one line; the name gets smaller instead. */
+.page-header-user .button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 /* The logo is only text for now. The final logo comes later. */
 .logo {
   font-size: var(--size-h3);
