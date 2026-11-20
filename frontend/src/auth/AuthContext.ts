@@ -6,7 +6,9 @@ import type { LoginResponse, UserResponse } from '../api/types.ts'
 //   if (auth.status === 'signedIn') { auth.user.name }
 export type AuthState =
   | { status: 'loading' } // the app is checking the saved session after a reload
-  | { status: 'signedOut' }
+  // sessionExpired: the API rejected the refresh token, so the sign-in page
+  // can tell the user why they are signed out.
+  | { status: 'signedOut'; sessionExpired: boolean }
   | { status: 'signedIn'; user: UserResponse }
 
 export type AuthContextValue = {

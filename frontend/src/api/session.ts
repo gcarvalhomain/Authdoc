@@ -58,8 +58,35 @@ export function refreshSession(): Promise<LoginResponse> {
 
 // Calls a route that needs a signed-in user: like apiRequest, plus the
 // Authorization header with the access token.
-export function authRequest<T>(path: string, options: Omit<RequestOptions, 'token'> = {}): Promise<T> {
-  return apiRequest<T>(path, { ...options, token: accessToken ?? undefined })
+//
+// When the API answers 401 UNAUTHORIZED (the access token expired, or the role
+// of the user changed), it refreshes the tokens and sends the call once more.
+// Sending a POST again is safe here: the API checks the token before it runs
+// the endpoint, so the first call did not change anything.
+export async function authRequest<T>(
+  path: string,
+  options: Omit<RequestOptions, 'token'> = {},
+): Promise<T> {
+  // After a reload, the access token exists only after the first refresh.
+  const sentToken = accessToken ?? (await refreshSession()).token
+
+  try {
+    return await apiRequest<T>(path, { ...options, token: sentToken })
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.code !== 'UNAUTHORIZED') {
+      throw error
+    }
+
+    // While this call was on its way, another call may have refreshed the tokens
+    // already. Then the new access token is enough, and no new refresh is needed.
+    const newToken =
+      accessToken !== null && accessToken !== sentToken
+        ? accessToken
+        : (await refreshSession()).token
+
+    // Only one more try: if the new token fails too, the error goes to the page.
+    return apiRequest<T>(path, { ...options, token: newToken })
+  }
 }
 
 // Calls the listener when the API rejects the refresh token, so the app knows

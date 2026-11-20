@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { login } from '../api/auth.ts'
+import { sessionEnded } from '../api/errorMessages.ts'
 import {
   emptyFormErrors,
   hasFormErrors,
@@ -85,6 +86,10 @@ function LoginPage() {
         {!hasFormErrors(errors) && registeredEmail && (
           <Alert variant="success">Your account was created. Sign in to continue.</Alert>
         )}
+        {!hasFormErrors(errors) &&
+          !registeredEmail &&
+          auth.status === 'signedOut' &&
+          auth.sessionExpired && <Alert variant="error">{sessionEnded}</Alert>}
 
         {/* noValidate turns off the browser checks, so the messages come
             from the API and look the same in every browser. */}

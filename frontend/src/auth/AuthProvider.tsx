@@ -12,7 +12,7 @@ function AuthProvider({ children }: AuthProviderProps) {
   // With a saved refresh token the app starts as 'loading' and tries to restore
   // the session. Without one, there is nothing to restore.
   const [auth, setAuth] = useState<AuthState>(() =>
-    getRefreshToken() ? { status: 'loading' } : { status: 'signedOut' },
+    getRefreshToken() ? { status: 'loading' } : { status: 'signedOut', sessionExpired: false },
   )
 
   // Runs once, when the app opens: exchanges the saved refresh token for new tokens.
@@ -31,8 +31,12 @@ function AuthProvider({ children }: AuthProviderProps) {
         }
       })
       .catch(() => {
+        // If the API rejected the token, the listener below has already set
+        // { sessionExpired: true }. "current" keeps that state and does not overwrite it.
         if (!ignore) {
-          setAuth({ status: 'signedOut' })
+          setAuth((current) =>
+            current.status === 'loading' ? { status: 'signedOut', sessionExpired: false } : current,
+          )
         }
       })
 
@@ -41,8 +45,12 @@ function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
-  // When the API rejects the refresh token, the user is signed out.
-  useEffect(() => onSessionExpired(() => setAuth({ status: 'signedOut' })), [])
+  // When the API rejects the refresh token, the user is signed out. On a page
+  // inside RequireAuth, this sends the user to the sign-in page at once.
+  useEffect(
+    () => onSessionExpired(() => setAuth({ status: 'signedOut', sessionExpired: true })),
+    [],
+  )
 
   function signIn(login: LoginResponse) {
     startSession(login)
