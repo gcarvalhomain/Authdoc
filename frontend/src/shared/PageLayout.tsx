@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { startTransition, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useAuth } from '../auth/AuthContext.ts'
 import Button from './Button.tsx'
@@ -15,10 +15,14 @@ function PageLayout({ children }: PageLayoutProps) {
   const navigate = useNavigate()
 
   function handleSignOut() {
-    signOut()
-    // Both changes happen in the same click, so React draws the home page
-    // directly, and RequireAuth does not send the user to the sign-in page.
-    navigate('/', { replace: true })
+    // React Router changes the address inside startTransition (an update with a
+    // lower priority). If signOut ran outside it, React would first draw the old
+    // page without a session, and RequireAuth would open the sign-in page.
+    // In the same transition, React applies both changes in one render.
+    startTransition(() => {
+      signOut()
+      navigate('/', { replace: true })
+    })
   }
 
   return (
