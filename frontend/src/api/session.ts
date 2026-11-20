@@ -16,6 +16,9 @@ const refreshTokenKey = 'authdoc.refreshToken'
 
 let accessToken: string | null = null
 let refreshing: Promise<LoginResponse> | null = null
+// Changes on every clearSession. A refresh that started before a sign-out sees
+// another number when its answer arrives, so it does not save the tokens again.
+let sessionNumber = 0
 const expiredListeners = new Set<() => void>()
 
 // Saves the tokens of a sign-in or a refresh.
@@ -26,6 +29,7 @@ export function startSession(login: LoginResponse): void {
 
 // Forgets the tokens on this device.
 export function clearSession(): void {
+  sessionNumber++
   accessToken = null
   writeRefreshToken(null)
 }
@@ -104,22 +108,31 @@ async function runRefresh(): Promise<LoginResponse> {
     throw new ApiError(401, 'UNAUTHORIZED', 'There is no session to refresh')
   }
 
+  const startedIn = sessionNumber
+  let response: LoginResponse
   try {
-    const response = await apiRequest<LoginResponse>('/auth/refresh', {
+    response = await apiRequest<LoginResponse>('/auth/refresh', {
       method: 'POST',
       body: { refreshToken },
     })
-    startSession(response)
-    return response
   } catch (error) {
     // 401: the refresh token is expired, revoked or already used, so the session is over.
     // Other errors (no network, 429) do not end the session: the next try can work.
-    if (error instanceof ApiError && error.status === 401) {
+    // After a sign-out there is no session to end, so nothing happens.
+    if (error instanceof ApiError && error.status === 401 && startedIn === sessionNumber) {
       clearSession()
       expiredListeners.forEach((listener) => listener())
     }
     throw error
   }
+
+  // The user signed out while this refresh was on its way: the new tokens are not saved.
+  if (startedIn !== sessionNumber) {
+    throw new ApiError(401, 'UNAUTHORIZED', 'The session ended during the refresh')
+  }
+
+  startSession(response)
+  return response
 }
 
 function writeRefreshToken(refreshToken: string | null): void {

@@ -14,6 +14,7 @@ export type AuthState =
 export type AuthContextValue = {
   auth: AuthState
   signIn: (login: LoginResponse) => void
+  signOut: () => void
 }
 
 // A Context shares one value with every component below its provider, without

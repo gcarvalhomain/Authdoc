@@ -1,5 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { getRefreshToken, onSessionExpired, refreshSession, startSession } from '../api/session.ts'
+import { logout } from '../api/auth.ts'
+import {
+  clearSession,
+  getRefreshToken,
+  onSessionExpired,
+  refreshSession,
+  startSession,
+} from '../api/session.ts'
 import type { LoginResponse } from '../api/types.ts'
 import { AuthContext, type AuthState } from './AuthContext.ts'
 
@@ -57,8 +64,21 @@ function AuthProvider({ children }: AuthProviderProps) {
     setAuth({ status: 'signedIn', user: login.user })
   }
 
+  function signOut() {
+    const refreshToken = getRefreshToken()
+    clearSession()
+    setAuth({ status: 'signedOut', sessionExpired: false })
+
+    // The user is signed out on this device at once, without waiting for the API.
+    // The call revokes the refresh token on the server. If it fails (no network),
+    // the token stops working on its own when it expires.
+    if (refreshToken) {
+      logout(refreshToken).catch(() => {})
+    }
+  }
+
   // React 19: a Context works as its own provider component.
-  return <AuthContext value={{ auth, signIn }}>{children}</AuthContext>
+  return <AuthContext value={{ auth, signIn, signOut }}>{children}</AuthContext>
 }
 
 export default AuthProvider
