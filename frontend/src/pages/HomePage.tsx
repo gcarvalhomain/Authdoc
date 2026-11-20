@@ -12,6 +12,11 @@ function HomePage() {
       <PageLayout>
         <h1>Welcome back, {auth.user.name}</h1>
         <p>A personal document vault.</p>
+        <div className="home-actions">
+          <Link className="button button-primary" to="/account">
+            My account
+          </Link>
+        </div>
       </PageLayout>
     )
   }

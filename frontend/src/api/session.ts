@@ -1,4 +1,4 @@
-import { apiRequest, ApiError } from './client.ts'
+import { apiRequest, ApiError, type RequestOptions } from './client.ts'
 import type { LoginResponse } from './types.ts'
 
 // Where the tokens of the signed-in user live.
@@ -54,6 +54,12 @@ export function refreshSession(): Promise<LoginResponse> {
     refreshing = null
   })
   return refreshing
+}
+
+// Calls a route that needs a signed-in user: like apiRequest, plus the
+// Authorization header with the access token.
+export function authRequest<T>(path: string, options: Omit<RequestOptions, 'token'> = {}): Promise<T> {
+  return apiRequest<T>(path, { ...options, token: accessToken ?? undefined })
 }
 
 // Calls the listener when the API rejects the refresh token, so the app knows

@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { login } from '../api/auth.ts'
 import {
   emptyFormErrors,
@@ -24,16 +24,14 @@ const fieldByCode: FieldByCode<LoginField> = {
   PASSWORD_REQUIRED: 'password',
 }
 
-// The sign-up page sends { registeredEmail } after it creates an account.
+// Two pages send state to this page:
+// - the sign-up page sends { registeredEmail } after it creates an account;
+// - RequireAuth sends { from } with the page the user tried to open.
 // The state can be anything (or nothing), so each part is checked before it is used.
-function readRegisteredEmail(state: unknown): string | null {
-  if (
-    typeof state === 'object' &&
-    state !== null &&
-    'registeredEmail' in state &&
-    typeof state.registeredEmail === 'string'
-  ) {
-    return state.registeredEmail
+function readText(state: unknown, key: 'registeredEmail' | 'from'): string | null {
+  if (typeof state === 'object' && state !== null && key in state) {
+    const value: unknown = (state as Record<string, unknown>)[key]
+    return typeof value === 'string' ? value : null
   }
 
   return null
@@ -42,8 +40,10 @@ function readRegisteredEmail(state: unknown): string | null {
 function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { signIn } = useAuth()
-  const registeredEmail = readRegisteredEmail(location.state)
+  const { auth, signIn } = useAuth()
+  const registeredEmail = readText(location.state, 'registeredEmail')
+  // After the sign-in: the page the user tried to open, or "My account".
+  const destination = readText(location.state, 'from') ?? '/account'
 
   // Each useState keeps one value between renders, like a field of a class in C#.
   // Calling the "set" function changes the value and draws the page again.
@@ -62,11 +62,17 @@ function LoginPage() {
       const response = await login({ email, password })
       signIn(response)
       // replace: the Back button does not return to the sign-in form.
-      navigate('/', { replace: true })
+      navigate(destination, { replace: true })
     } catch (caught) {
       setErrors(toFormErrors(caught, fieldByCode))
       setIsSubmitting(false)
     }
+  }
+
+  // A signed-in user does not need this form. The check comes after the hooks
+  // (useState...), because React needs the same hooks in the same order on every render.
+  if (auth.status === 'signedIn') {
+    return <Navigate to={destination} replace />
   }
 
   return (
