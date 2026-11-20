@@ -45,7 +45,7 @@ That is why the project starts with the identity layer. Authentication, roles an
 | Role-based authorization (`Admin` / `User`) | ✅ Implemented |
 | User management (administrative CRUD and pagination) | ✅ Implemented |
 | Public sign-up (self-registration) | ✅ Implemented |
-| Rate limiting on sign-up, login, password change and refresh | ✅ Implemented |
+| Rate limiting on sign-up, login, password change, refresh and logout | ✅ Implemented |
 | Global exception handling | ✅ Implemented |
 | Automatic bootstrap (migrations + initial admin) | ✅ Implemented |
 | Unit and integration tests | ✅ Implemented |
@@ -227,8 +227,8 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `AuthService` rules (a too long password is never hashed), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
-| Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
+| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `AuthService` rules (a too long password is never hashed, logout revokes the token only once), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
+| Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, logout, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
 
@@ -386,6 +386,7 @@ The admin logs in the same way, with `admin@system.com` and the password from `S
 |---|---|---|---|
 | `POST` | `/api/auth/login` | Public | Authenticates and returns the JWT, the refresh token, the expirations and the user data |
 | `POST` | `/api/auth/refresh` | Public | Exchanges a valid refresh token for a new pair of tokens |
+| `POST` | `/api/auth/logout` | Public | Ends one session: revokes the refresh token in the body (`{ "refreshToken": "..." }`) and returns `204` |
 | `PUT` | `/api/auth/password` | Authenticated | Changes the user's own password (ends the other sessions) |
 | `POST` | `/api/auth/register` | Public | Creates a new account, always with the `User` role |
 | `GET` | `/api/auth/me` | Authenticated | Returns the current user from the database (`id`, `email`, `name`, `role`, `createdAt`, `updatedAt`), the same format as `GET /api/users/{id}` |
@@ -433,9 +434,10 @@ Request body for `POST` and `PUT`:
 - The password has from 8 to 128 characters, cannot be only spaces, and is confirmed on registration
 - A password longer than 128 characters is never hashed: on login the answer is `401 INVALID_CREDENTIALS`, and as the current password in a password change it is `400 CURRENT_PASSWORD_INCORRECT` (the same answers as a wrong password)
 - Sign-up is public and always creates an account with the `User` role; a role sent in the request body is ignored
-- Sign-up, login and password change are limited to 5 attempts per minute per IP, and refresh to 30; above that the API responds with `429`
+- Sign-up, login and password change are limited to 5 attempts per minute per IP, and refresh and logout to 30; above that the API responds with `429`
 - The refresh token is valid for 7 days, can be used only once (each use generates a new one) and is stored only as a SHA-256 hash
 - Changing the password revokes all the user's refresh tokens
+- Logout revokes only the refresh token that was sent, so the other sessions of the user stay active. The answer is `204` even for an unknown or already revoked token, so it does not tell whether a token exists. The JWT of that session keeps working until it expires (see Known limitations)
 - The role cannot be changed through the update endpoint, which prevents privilege escalation through the payload
 - The role is changed only through `PATCH /api/users/{id}/role`, with the body `{ "role": "Admin" }` or `{ "role": "User" }`
 - A role change or a user deletion takes effect at once: every request checks that the user of the token still exists and still has the role in the token, otherwise the answer is `401 UNAUTHORIZED`, and the client must refresh or log in again
@@ -578,7 +580,7 @@ The JWT key and the initial admin password are not versioned: in development the
 
 | Limitation | Impact | Possible solution |
 |---|---|---|
-| A password change does not end the current JWTs | A token issued before the password change keeps working for up to `Jwt:ExpirationInMinutes` (the refresh tokens are already revoked). A deleted user or a changed role is already blocked on every request | A *security stamp* on the user, written in the token and checked on every request |
+| A password change or a logout does not end the current JWTs | A token issued before the password change or the logout keeps working for up to `Jwt:ExpirationInMinutes` (the refresh tokens are already revoked). A deleted user or a changed role is already blocked on every request | A *security stamp* on the user, written in the token and checked on every request |
 | One database query per authenticated request | The user check adds one small query (by primary key) to every request with a token | Cache the check for a short time if the load grows |
 | The last admin rule is not atomic | Two simultaneous requests can demote or delete the last two admins | A transaction with the right isolation level or a database lock |
 | Rate limiting is in memory and per IP | It resets when the API restarts, it is not shared between instances and, behind a proxy, everyone can look like the same IP | Distributed rate limiting (e.g. Redis) and `ForwardedHeaders` configuration |
