@@ -14,8 +14,37 @@
 .page-header-content {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-16);
   height: 56px;
   padding: 0 var(--space-16);
+}
+
+/* The name of the signed-in user and the sign-out button, on the right. */
+.page-header-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-width: 0;
+}
+
+/* A long name ends with "..." and does not push the button out of the screen. */
+.page-header-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+
+.page-header-name:hover {
+  color: var(--color-text-primary);
+}
+
+/* The button keeps its size and its text on one line; the name gets smaller instead. */
+.page-header-user .button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* The logo is only text for now. The final logo comes later. */

@@ -1,6 +1,6 @@
 import { ApiError } from './client.ts'
 
-const sessionEnded = 'Your session has ended. Please sign in again.'
+export const sessionEnded ='Your session has ended. Please sign in again.'
 const somethingWentWrong = 'Something went wrong. Please try again.'
 
 // Texts for the error codes where the API message is too technical for a user.

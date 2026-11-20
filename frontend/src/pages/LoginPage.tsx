@@ -1,6 +1,7 @@
 import { useState, type SubmitEvent } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router'
 import { login } from '../api/auth.ts'
+import { sessionEnded } from '../api/errorMessages.ts'
 import {
   emptyFormErrors,
   hasFormErrors,
@@ -8,7 +9,7 @@ import {
   type FieldByCode,
   type FormErrors,
 } from '../api/formErrors.ts'
-import type { UserResponse } from '../api/types.ts'
+import { useAuth } from '../auth/AuthContext.ts'
 import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import Input from '../shared/Input.tsx'
@@ -24,16 +25,14 @@ const fieldByCode: FieldByCode<LoginField> = {
   PASSWORD_REQUIRED: 'password',
 }
 
-// The sign-up page sends { registeredEmail } after it creates an account.
+// Two pages send state to this page:
+// - the sign-up page sends { registeredEmail } after it creates an account;
+// - RequireAuth sends { from } with the page the user tried to open.
 // The state can be anything (or nothing), so each part is checked before it is used.
-function readRegisteredEmail(state: unknown): string | null {
-  if (
-    typeof state === 'object' &&
-    state !== null &&
-    'registeredEmail' in state &&
-    typeof state.registeredEmail === 'string'
-  ) {
-    return state.registeredEmail
+function readText(state: unknown, key: 'registeredEmail' | 'from'): string | null {
+  if (typeof state === 'object' && state !== null && key in state) {
+    const value: unknown = (state as Record<string, unknown>)[key]
+    return typeof value === 'string' ? value : null
   }
 
   return null
@@ -41,7 +40,11 @@ function readRegisteredEmail(state: unknown): string | null {
 
 function LoginPage() {
   const location = useLocation()
-  const registeredEmail = readRegisteredEmail(location.state)
+  const navigate = useNavigate()
+  const { auth, signIn } = useAuth()
+  const registeredEmail = readText(location.state, 'registeredEmail')
+  // After the sign-in: the page the user tried to open, or "My account".
+  const destination = readText(location.state, 'from') ?? '/account'
 
   // Each useState keeps one value between renders, like a field of a class in C#.
   // Calling the "set" function changes the value and draws the page again.
@@ -49,7 +52,6 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<FormErrors<LoginField>>(emptyFormErrors)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [signedInUser, setSignedInUser] = useState<UserResponse | null>(null)
 
   async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     // Without this, the browser would reload the page to send the form.
@@ -59,24 +61,19 @@ function LoginPage() {
 
     try {
       const response = await login({ email, password })
-      setSignedInUser(response.user)
+      signIn(response)
+      // replace: the Back button does not return to the sign-in form.
+      navigate(destination, { replace: true })
     } catch (caught) {
       setErrors(toFormErrors(caught, fieldByCode))
-    } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Temporary: step 5 saves the session and opens the logged-in area here.
-  if (signedInUser) {
-    return (
-      <PageLayout>
-        <div className="auth-card">
-          <h1>Signed in</h1>
-          <Alert variant="success">You are signed in as {signedInUser.name}.</Alert>
-        </div>
-      </PageLayout>
-    )
+  // A signed-in user does not need this form. The check comes after the hooks
+  // (useState...), because React needs the same hooks in the same order on every render.
+  if (auth.status === 'signedIn') {
+    return <Navigate to={destination} replace />
   }
 
   return (
@@ -89,6 +86,10 @@ function LoginPage() {
         {!hasFormErrors(errors) && registeredEmail && (
           <Alert variant="success">Your account was created. Sign in to continue.</Alert>
         )}
+        {!hasFormErrors(errors) &&
+          !registeredEmail &&
+          auth.status === 'signedOut' &&
+          auth.sessionExpired && <Alert variant="error">{sessionEnded}</Alert>}
 
         {/* noValidate turns off the browser checks, so the messages come
             from the API and look the same in every browser. */}

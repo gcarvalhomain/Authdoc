@@ -236,7 +236,7 @@ The tests use an **in-memory** database and their own configuration, so they do 
 
 ## Frontend
 
-The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity, the shared components and the sign-in and sign-up pages. The session (saving the token and refreshing it) and the documents pages come next.
+The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity, the shared components, the sign-in and sign-up pages, and the session (the user stays signed in after a reload, the token is refreshed on its own, and the user can sign out). The documents pages come next.
 
 ### Running the frontend
 
@@ -260,21 +260,41 @@ The app opens at `http://localhost:5173`.
 ### How the frontend talks to the API
 
 - The API has no CORS configuration, so the browser does not call it directly. In development, the Vite server forwards every `/api` request to `http://localhost:5297` (see `frontend/vite.config.ts`).
-- All the calls go through `apiRequest` in `frontend/src/api/client.ts`. It adds the `/api` prefix and the `Bearer` token, and every failure becomes an `ApiError` with the HTTP status and a `code`.
+- All the calls go through `apiRequest` in `frontend/src/api/client.ts`. It adds the `/api` prefix, and every failure becomes an `ApiError` with the HTTP status and a `code`. Calls that need a signed-in user use `authRequest` (see [Session](#session)), which adds the `Bearer` token.
 - The `code` is the same as in [Error format](#error-format). The client adds two codes of its own: `NETWORK_ERROR` (the API could not be reached, for example because it is not running) and `UNKNOWN_ERROR` (an answer that did not come in the API format).
 - `frontend/src/api/errorMessages.ts` turns a code into the text shown to the user. Most codes use the API message; session, network and server errors have their own text.
 - `frontend/src/api/formErrors.ts` decides where a form shows an error: each form maps its validation codes to its fields (for example `EMAIL_INVALID` → the email field), and any other error shows at the top of the form. On the sign-in page, `INVALID_CREDENTIALS` always shows at the top, so the page does not tell whether the email or the password is wrong.
+
+### Session
+
+The session code is in `frontend/src/api/session.ts` (the tokens) and `frontend/src/auth/` (the React side).
+
+| Part | Where it lives | Why |
+|---|---|---|
+| Access token (JWT) | Only in memory | It lives for one hour, so losing it on a reload is fine |
+| Refresh token | `localStorage` | After a reload, the app exchanges it for a new pair of tokens, so the user stays signed in |
+| Signed-in user | `AuthContext` (React Context) | Every page can read it with `useAuth()` |
+
+- **Reload:** with a saved refresh token, the app calls `POST /api/auth/refresh` when it opens. While it waits, the protected pages show "Loading...".
+- **Automatic refresh:** when a call with a token gets `401 UNAUTHORIZED` (expired token or changed role), `authRequest` refreshes the tokens and sends the call once more. Only one refresh runs at a time: the API accepts each refresh token only once, so two refreshes at the same time would end the session.
+- **Session ended:** when the API rejects the refresh token, the app forgets the tokens and opens the sign-in page with "Your session has ended".
+- **Sign out:** the app forgets the tokens at once and calls `POST /api/auth/logout`, which revokes the refresh token on the server. The other devices of the user stay signed in.
+- **Protected pages:** `RequireAuth` sends a user without a session to the sign-in page, and after the sign-in the user goes back to the page they tried to open.
+- **Known limitation:** any script on the page can read `localStorage`, so an XSS bug could steal the refresh token. The safer option is an `httpOnly` cookie set by the API, which the browser sends but scripts cannot read. Two tabs that refresh at the same moment can also sign one of them out.
 
 ### Pages
 
 The routes are in `frontend/src/App.tsx` (React Router).
 
-| Route | Page |
-|---|---|
-| `/` | Home, with links to sign in and to create an account |
-| `/login` | Sign in. For now it only shows who signed in; saving the session comes in the next step |
-| `/register` | Create an account. After it, the sign-in page opens with the email already filled in |
-| any other | Page not found |
+| Route | Access | Page |
+|---|---|---|
+| `/` | Public | Home: links to sign in and to create an account, or to "My account" for a signed-in user |
+| `/login` | Public | Sign in. After it, the page the user tried to open, or `/account` |
+| `/register` | Public | Create an account. After it, the sign-in page opens with the email already filled in |
+| `/account` | Signed in | My account: name, email, role and sign-up date, read from `GET /api/auth/me` |
+| any other | Public | Page not found |
+
+A signed-in user who opens `/login` or `/register` goes to `/account`. The header shows the user's name and a "Sign out" button.
 
 The development server answers every route with `index.html`, so a page also opens when you type its address or reload it. A production server needs the same rule.
 
@@ -285,11 +305,12 @@ frontend/
 ├── index.html
 ├── vite.config.ts           # Dev server and /api proxy
 └── src/
-    ├── main.tsx             # Entry point, with the router
+    ├── main.tsx             # Entry point, with the router and the session provider
     ├── App.tsx              # Routes: which page each address shows
     ├── index.css            # Visual identity: colors, fonts, sizes and spacing as CSS variables
-    ├── api/                 # API client, auth calls, request/response types and error messages
-    ├── pages/               # One component per page: Home, Login, Register, NotFound
+    ├── api/                 # API client, session tokens, auth calls, types and error messages
+    ├── auth/                # Session in React: AuthContext, AuthProvider, RequireAuth
+    ├── pages/               # One component per page: Home, Login, Register, Account, NotFound
     └── shared/              # Shared components: Alert, Button, Input, PageLayout
 ```
 

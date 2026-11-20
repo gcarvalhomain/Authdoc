@@ -1,5 +1,5 @@
 import { useState, type SubmitEvent } from 'react'
-import { Link, useNavigate } from 'react-router'
+import { Link, Navigate, useNavigate } from 'react-router'
 import { register } from '../api/auth.ts'
 import {
   emptyFormErrors,
@@ -7,6 +7,7 @@ import {
   type FieldByCode,
   type FormErrors,
 } from '../api/formErrors.ts'
+import { useAuth } from '../auth/AuthContext.ts'
 import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import Input from '../shared/Input.tsx'
@@ -30,6 +31,7 @@ const fieldByCode: FieldByCode<RegisterField> = {
 
 function RegisterPage() {
   const navigate = useNavigate()
+  const { auth } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -51,6 +53,11 @@ function RegisterPage() {
       setErrors(toFormErrors(caught, fieldByCode))
       setIsSubmitting(false)
     }
+  }
+
+  // A signed-in user does not need a new account.
+  if (auth.status === 'signedIn') {
+    return <Navigate to="/account" replace />
   }
 
   return (
