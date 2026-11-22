@@ -83,3 +83,13 @@ a:where(:not(.button)) {
 a:where(:not(.button)):hover {
   color: var(--color-primary-hover);
 }
+
+/* Text that only screen readers read: it is on the page, but not visible. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

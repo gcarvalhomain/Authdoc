@@ -11,6 +11,11 @@ type InputProps = {
   // Tells the browser what the field is, so it can fill it in or save it,
   // for example "email", "current-password" or "new-password".
   autoComplete?: string
+  // The id of a <datalist>: the browser shows its options as suggestions
+  // while the user types, and the user can still type any other text.
+  list?: string
+  // The most characters the browser lets the user type.
+  maxLength?: number
 }
 
 function Input({
@@ -22,6 +27,8 @@ function Input({
   error,
   disabled = false,
   autoComplete,
+  list,
+  maxLength,
 }: InputProps) {
   return (
     <div className="field">
@@ -36,6 +43,8 @@ function Input({
         value={value}
         disabled={disabled}
         autoComplete={autoComplete}
+        list={list}
+        maxLength={maxLength}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}
         onChange={(event) => onChange(event.target.value)}

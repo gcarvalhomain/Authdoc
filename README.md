@@ -236,7 +236,7 @@ The tests use an **in-memory** database and their own configuration, so they do 
 
 ## Frontend
 
-The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity, the shared components, the sign-in and sign-up pages, and the session (the user stays signed in after a reload, the token is refreshed on its own, and the user can sign out), and the list of the user's documents. Creating, editing and deleting documents come next.
+The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity, the shared components, the sign-in and sign-up pages, and the session (the user stays signed in after a reload, the token is refreshed on its own, and the user can sign out), and the pages to list, add and edit the user's documents. Deleting a document and changing the password come next.
 
 ### Running the frontend
 
@@ -293,6 +293,8 @@ The routes are in `frontend/src/App.tsx` (React Router).
 | `/register` | Public | Create an account. After it, the sign-in page opens with the email already filled in |
 | `/account` | Signed in | My account: name, email, role and sign-up date, read from `GET /api/auth/me` |
 | `/documents` | Signed in | My documents: a table with 10 documents per page, read from `GET /api/documents` |
+| `/documents/new` | Signed in | Add document: the document form, saved with `POST /api/documents` |
+| `/documents/:id/edit` | Signed in | Edit document: the same form, filled from `GET /api/documents/{id}` and saved with `PUT /api/documents/{id}` |
 | any other | Public | Page not found |
 
 A signed-in user who opens `/login` or `/register` goes to `/account`. The header shows a "Documents" link, the user's name and a "Sign out" button.
@@ -302,6 +304,14 @@ On `/documents`:
 - The page number is in the address (`/documents?page=2`), so a reload or the Back button keeps the same page. A wrong value, like `?page=abc`, opens page 1.
 - The page shows "Loading documents..." while it waits, a message when the user has no documents, and the error with a "Try again" button when the call fails. A page after the last one (for example `?page=99`) offers a link back to page 1.
 - Dates without a time (`issuedAt`, `expiresAt`) are formatted in UTC. Read as local time, `"2026-11-01"` would show as Oct 31 in Brazil (UTC-3).
+
+On the add and edit pages:
+
+- Both pages use one form (`frontend/src/pages/DocumentForm.tsx`). The Type field suggests common types while the user types, and accepts any other text.
+- Each validation code of the API shows under its field, for example `ISSUED_AT_IN_FUTURE` under the issue date. The fields also stop at the API size limits (50, 100, 50 and 500 characters); the API still checks them.
+- An empty issue date is left out of the request, so the API answers `ISSUED_AT_REQUIRED`. An empty expiry date is sent as `null` (no expiry).
+- After a save, the list opens with "Document added." or "Document updated.". A new document opens the last page, because the list shows the oldest documents first. Edit and Cancel go back to the list page where the user was.
+- A document that does not exist, belongs to another user, or has a wrong id in the address shows "This document does not exist or was deleted.".
 
 The development server answers every route with `index.html`, so a page also opens when you type its address or reload it. A production server needs the same rule.
 
