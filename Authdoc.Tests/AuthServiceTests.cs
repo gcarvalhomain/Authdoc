@@ -12,10 +12,11 @@ public class AuthServiceTests
 {
     private static readonly string TooLongPassword = new('a', User.PasswordMaxLength + 1);
 
-    private static ManagerDbContext CreateContext()
+    // Two contexts with the same database name act like two requests at the same time.
+    private static ManagerDbContext CreateContext(string? databaseName = null)
     {
         var options = new DbContextOptionsBuilder<ManagerDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(databaseName ?? Guid.NewGuid().ToString())
             .Options;
 
         return new ManagerDbContext(options);
@@ -107,6 +108,52 @@ public class AuthServiceTests
         // Assert
         var storedToken = await context.RefreshTokens.SingleAsync();
         Assert.Equal(firstRevokedAt, storedToken.RevokedAt);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WhenAnotherRequestUsedTheTokenFirst_ReturnsNull()
+    {
+        // Arrange
+        var databaseName = Guid.NewGuid().ToString();
+        using var firstContext = CreateContext(databaseName);
+        using var secondContext = CreateContext(databaseName);
+        await AddUserAsync(firstContext, "refresh-race@gmail.com");
+        var firstService = CreateServiceWithJwt(firstContext);
+        var secondService = CreateServiceWithJwt(secondContext);
+        var login = await firstService.LoginAsync(new LoginRequest { Email = "refresh-race@gmail.com", Password = "senha123" });
+        // The second request reads the token while it is still active, before the first one saves.
+        await secondContext.RefreshTokens.Include(token => token.User).SingleAsync();
+        var firstRefresh = await firstService.RefreshAsync(login!.RefreshToken);
+
+        // Act
+        var secondRefresh = await secondService.RefreshAsync(login.RefreshToken);
+
+        // Assert
+        Assert.NotNull(firstRefresh);
+        Assert.Null(secondRefresh);
+        using var checkContext = CreateContext(databaseName);
+        Assert.Equal(2, await checkContext.RefreshTokens.CountAsync());
+    }
+
+    [Fact]
+    public async Task LogoutAsync_WhenAnotherRequestRevokedTheTokenFirst_DoesNotThrow()
+    {
+        // Arrange
+        var databaseName = Guid.NewGuid().ToString();
+        using var firstContext = CreateContext(databaseName);
+        using var secondContext = CreateContext(databaseName);
+        await AddUserAsync(firstContext, "logout-race@gmail.com");
+        var firstService = CreateServiceWithJwt(firstContext);
+        var secondService = CreateServiceWithJwt(secondContext);
+        var login = await firstService.LoginAsync(new LoginRequest { Email = "logout-race@gmail.com", Password = "senha123" });
+        await secondContext.RefreshTokens.SingleAsync();
+        await firstService.LogoutAsync(login!.RefreshToken);
+
+        // Act
+        var exception = await Record.ExceptionAsync(() => secondService.LogoutAsync(login.RefreshToken));
+
+        // Assert
+        Assert.Null(exception);
     }
 
     // LoginAsync creates a JWT, so these tests need the Jwt settings.

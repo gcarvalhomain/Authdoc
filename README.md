@@ -80,7 +80,7 @@ Today Authdoc is an **identity and user management API** in which each user can 
 ## Concepts and fundamentals applied
 
 - **Stateless authentication with JWT:** the token is signed with HMAC-SHA256 and carries identity claims (`NameIdentifier`, `Name`, `Email`, `Role`). The API validates issuer, audience, lifetime and signature on every request, and then checks in the database that the user still exists and still has the role and the security stamp in the token. A password change creates a new security stamp, so every access token made before it stops working at once, on every device.
-- **Refresh token with rotation:** each use generates a new token and revokes the previous one. Only the SHA-256 hash is stored in the database.
+- **Refresh token with rotation:** each use generates a new token and revokes the previous one. Only the SHA-256 hash is stored in the database. `RevokedAt` is a concurrency token, so when two requests use the same refresh token at the same time, only the first one gets a new session and the other gets `401 INVALID_REFRESH_TOKEN`.
 - **Role-based access control (RBAC):** an `Admin` policy protects the administrative routes.
 - **Salted password hashing:** passwords are never stored in plain text. The `PasswordHasher` generates PBKDF2 hashes with a random salt and format versioning, which allows a rehash when the algorithm evolves.
 - **Dependency injection and service lifetime:** services and the `DbContext` are registered as *Scoped* (one per request). At startup, an explicit scope is created for the database bootstrap.
@@ -227,7 +227,7 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `AuthService` rules (a too long password is never hashed, logout revokes the token only once), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
+| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `AuthService` rules (a too long password is never hashed, logout revokes the token only once, a refresh token gives only one new session when two requests use it at the same time), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
 | Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, logout, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.

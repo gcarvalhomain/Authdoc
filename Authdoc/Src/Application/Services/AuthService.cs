@@ -105,6 +105,15 @@ public class AuthService
 
         storedToken.RevokedAt = DateTime.UtcNow;
 
+        try
+        {
+            await _context.SaveChangesAsync(); // It saves the revoke first, so only the request that wins it creates a session.
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return null; // It is for one refresh token to create only one new session, even with two requests at the same time.
+        }
+
         return await CreateSessionAsync(storedToken.User);
     }
 
@@ -124,7 +133,15 @@ public class AuthService
         }
 
         storedToken.RevokedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // It ignores the conflict, because another request already revoked this token and that is the goal.
+        }
     }
 
     public async Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
