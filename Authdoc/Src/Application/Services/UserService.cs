@@ -139,16 +139,18 @@ public class UserService
         return DeleteUserResult.Deleted;
     }
 
-    // A token is accepted only while its user still exists and still has the role written in it.
-    // So a deleted user or a changed role makes the old token stop working at once.
-    public async Task<bool> IsTokenStillValidAsync(Guid id, string? tokenRole)
+    // A token is accepted only while its user still exists and still has the role and the security stamp written in it.
+    // So a deleted user, a changed role or a changed password makes the old token stop working at once.
+    public async Task<bool> IsTokenStillValidAsync(Guid id, string? tokenRole, string? tokenSecurityStamp)
     {
-        var currentRole = await _context.Users
+        var current = await _context.Users
             .Where(user => user.Id == id)
-            .Select(user => (UserRole?)user.Role)
+            .Select(user => new { user.Role, user.SecurityStamp })
             .FirstOrDefaultAsync();
 
-        return currentRole is not null && currentRole.Value.ToString() == tokenRole;
+        return current is not null
+            && current.Role.ToString() == tokenRole
+            && current.SecurityStamp.ToString() == tokenSecurityStamp; // It rejects a token made before the last password change.
     }
 
     public async Task<bool> EmailBelongsToAnotherUserAsync(Guid id, string email)

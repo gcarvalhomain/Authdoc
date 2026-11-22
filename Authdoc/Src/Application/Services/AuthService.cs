@@ -19,6 +19,8 @@ namespace Authdoc.Application.Services;
 
 public class AuthService
 {
+    public const string SecurityStampClaimType = "security_stamp"; // It is the name of the claim that carries the user's security stamp in the token.
+
     private readonly ManagerDbContext _context;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly IConfiguration _configuration;
@@ -147,6 +149,7 @@ public class AuthService
 
         var now = DateTime.UtcNow;
         user.PasswordHash = _passwordHasher.HashPassword(user, request.NewPassword);
+        user.SecurityStamp = Guid.NewGuid(); // It is for a stolen access token to stop working after a password change.
         user.UpdatedAt = now;
 
         var activeTokens = await _context.RefreshTokens
@@ -215,7 +218,8 @@ public class AuthService
             new  Claim(ClaimTypes.Role, user.Role.ToString()),
             new (ClaimTypes.NameIdentifier, user.Id.ToString()),
             new (ClaimTypes.Name, user.Name),
-            new (ClaimTypes.Email, user.Email)
+            new (ClaimTypes.Email, user.Email),
+            new (SecurityStampClaimType, user.SecurityStamp.ToString()) // It writes the current stamp in the token, so the API can compare it later.
         };
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key!));
         var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);

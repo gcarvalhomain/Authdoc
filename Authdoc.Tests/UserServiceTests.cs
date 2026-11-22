@@ -47,10 +47,30 @@ public class UserServiceTests
         var service = new UserService(context);
 
         // Act
-        var result = await service.IsTokenStillValidAsync(user.Id, "User");
+        var result = await service.IsTokenStillValidAsync(user.Id, "User", user.SecurityStamp.ToString());
 
         // Assert
         Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsTokenStillValidAsync_WhenSecurityStampChanged_ReturnsFalse()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = new User { Name = "User", Email = "token-new-stamp@gmail.com" };
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        var oldStamp = user.SecurityStamp.ToString();
+        user.SecurityStamp = Guid.NewGuid();
+        await context.SaveChangesAsync();
+        var service = new UserService(context);
+
+        // Act
+        var result = await service.IsTokenStillValidAsync(user.Id, "User", oldStamp);
+
+        // Assert
+        Assert.False(result);
     }
 
     [Fact]
@@ -64,7 +84,7 @@ public class UserServiceTests
         var service = new UserService(context);
 
         // Act
-        var result = await service.IsTokenStillValidAsync(user.Id, "Admin");
+        var result = await service.IsTokenStillValidAsync(user.Id, "Admin", user.SecurityStamp.ToString());
 
         // Assert
         Assert.False(result);
@@ -78,7 +98,7 @@ public class UserServiceTests
         var service = new UserService(context);
 
         // Act
-        var result = await service.IsTokenStillValidAsync(Guid.NewGuid(), "User");
+        var result = await service.IsTokenStillValidAsync(Guid.NewGuid(), "User", Guid.NewGuid().ToString());
 
         // Assert
         Assert.False(result);

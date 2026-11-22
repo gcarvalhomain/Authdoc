@@ -15,6 +15,7 @@ public class User
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public UserRole Role { get; set; } = UserRole.User;
+    public Guid SecurityStamp { get; set; } = Guid.NewGuid(); // It changes on a password change, so the access tokens made before it stop working.
 
 
 }
