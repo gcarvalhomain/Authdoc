@@ -130,6 +130,11 @@ namespace Authdoc.Migrations
                     b.Property<int>("Role")
                         .HasColumnType("int");
 
+                    b.Property<Guid>("SecurityStamp")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("newid()");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 

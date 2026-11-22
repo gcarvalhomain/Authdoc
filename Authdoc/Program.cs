@@ -65,11 +65,12 @@ builder.Services.AddAuthentication(options =>
             {
                 var userId = context.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var role = context.Principal?.FindFirst(ClaimTypes.Role)?.Value;
+                var securityStamp = context.Principal?.FindFirst(AuthService.SecurityStampClaimType)?.Value; // It reads the stamp that the token carries.
                 var userService = context.HttpContext.RequestServices.GetRequiredService<UserService>();
 
-                if (!Guid.TryParse(userId, out var id) || !await userService.IsTokenStillValidAsync(id, role))
+                if (!Guid.TryParse(userId, out var id) || !await userService.IsTokenStillValidAsync(id, role, securityStamp))
                 {
-                    context.Fail("The user of this token was deleted or has another role.");
+                    context.Fail("The user of this token was deleted, has another role or changed the password.");
                 }
             },
             OnChallenge = async context =>

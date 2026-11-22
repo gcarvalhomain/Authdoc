@@ -30,6 +30,9 @@ public class ManagerDbContext : DbContext
 
             entity.HasIndex(u => u.Email)
                 .IsUnique();
+
+            entity.Property(u => u.SecurityStamp)
+                .HasDefaultValueSql("newid()"); // It gives each existing user a different stamp when the migration adds the column.
         });
         modelBuilder.Entity<Document>(entity =>
         {

@@ -171,6 +171,27 @@ public class ChangePasswordTests : IClassFixture<AuthdocApiFactory>
     }
 
     [Fact]
+    public async Task ChangePassword_WithCorrectCurrentPassword_OldAccessTokenReturns401Unauthorized()
+    {
+        // Arrange
+        var (client, _) = await CreateUserClientAsync("change-old-token@gmail.com");
+        await client.PutAsJsonAsync("/api/auth/password", new
+        {
+            currentPassword = "senha123",
+            newPassword = "novaSenha456",
+            confirmationPassword = "novaSenha456"
+        });
+
+        // Act
+        var response = await client.GetAsync("/api/auth/me");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        Assert.Equal("UNAUTHORIZED", error!.Code);
+    }
+
+    [Fact]
     public async Task ChangePassword_WithoutToken_Returns401Unauthorized()
     {
         // Arrange
