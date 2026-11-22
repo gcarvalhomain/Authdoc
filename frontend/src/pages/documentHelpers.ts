@@ -2,6 +2,16 @@ import type { DocumentRequest, DocumentResponse } from '../api/types.ts'
 
 // ---------- The values of the document form ----------
 
+// The size limits of the API (the constants in Authdoc/Src/Models/Entities/Document.cs).
+// The form uses them so the user cannot type more. The API still checks them:
+// the browser limit is only a help, anyone can call the API without this page.
+export const documentLimits = {
+  type: 50,
+  name: 100,
+  number: 50,
+  description: 500,
+}
+
 // What the form fields hold. Every field of a form is text, also the dates
 // ("2026-11-22", or "" when the field is empty), so the form keeps strings
 // here and turns them into a DocumentRequest only when it saves.

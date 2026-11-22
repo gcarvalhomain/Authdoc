@@ -9,6 +9,8 @@ type TextAreaProps = {
   disabled?: boolean
   // How many lines of text the box shows before it scrolls.
   rows?: number
+  // The most characters the browser lets the user type.
+  maxLength?: number
 }
 
 // A text box with many lines, for a long text like a description.
@@ -21,6 +23,7 @@ function TextArea({
   error,
   disabled = false,
   rows = 4,
+  maxLength,
 }: TextAreaProps) {
   return (
     <div className="field">
@@ -33,6 +36,7 @@ function TextArea({
         name={name}
         value={value}
         rows={rows}
+        maxLength={maxLength}
         disabled={disabled}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${name}-error` : undefined}

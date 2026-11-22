@@ -1,7 +1,10 @@
 import { ApiError } from './client.ts'
 
 export const sessionEnded ='Your session has ended. Please sign in again.'
-const somethingWentWrong = 'Something went wrong. Please try again.'
+// The API gives the same answer for a deleted document and for a document
+// of another user, so the text does not say which one it is.
+export const documentNotFound = 'This document does not exist or was deleted.'
+const somethingWentWrong ='Something went wrong. Please try again.'
 
 // Texts for the error codes where the API message is too technical for a user.
 // Every other code shows the message that the API sent, for example
@@ -13,6 +16,7 @@ const messages: Record<string, string> = {
   INTERNAL_ERROR: somethingWentWrong,
   NETWORK_ERROR: 'Could not reach the server. Check your connection and try again.',
   UNKNOWN_ERROR: somethingWentWrong,
+  DOCUMENT_NOT_FOUND: documentNotFound,
 }
 
 // Returns the text to show to the user for an error that a page caught.

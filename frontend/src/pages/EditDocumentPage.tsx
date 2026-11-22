@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router'
 import { getDocument, updateDocument } from '../api/documents.ts'
-import { getErrorMessage } from '../api/errorMessages.ts'
+import { documentNotFound, getErrorMessage } from '../api/errorMessages.ts'
 import type { DocumentRequest, DocumentResponse } from '../api/types.ts'
 import Alert from '../shared/Alert.tsx'
 import PageLayout from '../shared/PageLayout.tsx'
@@ -11,6 +11,10 @@ import {
   toFormValues,
   type DocumentsListState,
 } from './documentHelpers.ts'
+
+// The ids of the API are GUIDs, like "93e4bd7d-b7be-4fc5-b7f7-18965492d52d".
+// For any other text the API answers INVALID_REQUEST, so the page does not ask.
+const guidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // The answer of the request that loads the document, with the id it belongs to.
 type LoadResult =
@@ -25,9 +29,14 @@ function EditDocumentPage() {
   const location = useLocation()
   const returnTo = readReturnTo(location.state)
 
+  const isValidId = guidPattern.test(id)
   const [result, setResult] = useState<LoadResult | null>(null)
 
   useEffect(() => {
+    if (!isValidId) {
+      return
+    }
+
     // If the id changes before the answer arrives, ignore the old answer.
     let ignore = false
     getDocument(id)
@@ -45,7 +54,7 @@ function EditDocumentPage() {
     return () => {
       ignore = true
     }
-  }, [id])
+  }, [id, isValidId])
 
   async function handleSave(request: DocumentRequest) {
     // If this call fails, the error goes back to the form.
@@ -54,7 +63,12 @@ function EditDocumentPage() {
     navigate(returnTo, { state })
   }
 
-  const current = result?.id === id ? result : null
+  // A wrong id gets the same message as a document that does not exist.
+  const current: LoadResult | null = !isValidId
+    ? { id, status: 'error', message: documentNotFound }
+    : result?.id === id
+      ? result
+      : null
 
   return (
     <PageLayout>

@@ -10,14 +10,27 @@ import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import Input from '../shared/Input.tsx'
 import TextArea from '../shared/TextArea.tsx'
-import { toDocumentRequest, type DocumentFormValues } from './documentHelpers.ts'
+import { documentLimits, toDocumentRequest, type DocumentFormValues } from './documentHelpers.ts'
 import './DocumentForm.css'
 
 type DocumentField = keyof DocumentFormValues
 
-// The validation codes of POST and PUT /api/documents, and their fields.
-// Empty for now: every error shows at the top of the form.
-const fieldByCode: FieldByCode<DocumentField> = {}
+// The validation codes of POST and PUT /api/documents (see "Error format" in the
+// README), and the field that shows each one. Any other error, like no connection
+// or DOCUMENT_NOT_FOUND, shows at the top of the form.
+const fieldByCode: FieldByCode<DocumentField> = {
+  TYPE_REQUIRED: 'type',
+  TYPE_TOO_LONG: 'type',
+  NAME_REQUIRED: 'name',
+  NAME_TOO_LONG: 'name',
+  NUMBER_REQUIRED: 'number',
+  NUMBER_TOO_LONG: 'number',
+  DESCRIPTION_TOO_LONG: 'description',
+  ISSUED_AT_REQUIRED: 'issuedAt',
+  ISSUED_AT_IN_FUTURE: 'issuedAt',
+  // The rule compares two dates, but the expiry date is the one to fix.
+  EXPIRES_AT_BEFORE_ISSUED_AT: 'expiresAt',
+}
 
 // Suggestions for the Type field. The API accepts any text, so the user can
 // also type a type that is not in this list.
@@ -85,6 +98,7 @@ function DocumentForm({
         label="Type"
         name="type"
         list="document-type-suggestions"
+        maxLength={documentLimits.type}
         value={values.type}
         onChange={changeField('type')}
         error={errors.fields.type}
@@ -99,6 +113,7 @@ function DocumentForm({
       <Input
         label="Name"
         name="name"
+        maxLength={documentLimits.name}
         value={values.name}
         onChange={changeField('name')}
         error={errors.fields.name}
@@ -107,6 +122,7 @@ function DocumentForm({
       <Input
         label="Number"
         name="number"
+        maxLength={documentLimits.number}
         value={values.number}
         onChange={changeField('number')}
         error={errors.fields.number}
@@ -138,6 +154,7 @@ function DocumentForm({
       <TextArea
         label="Description (optional)"
         name="description"
+        maxLength={documentLimits.description}
         value={values.description}
         onChange={changeField('description')}
         error={errors.fields.description}
