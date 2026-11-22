@@ -464,6 +464,7 @@ Request body for `POST` and `PUT`:
 - A role change or a user deletion takes effect at once: every request checks that the user of the token still exists and still has the role in the token, otherwise the answer is `401 UNAUTHORIZED`, and the client must refresh or log in again
 - An admin cannot change their own role, and the last admin of the system cannot be demoted
 - An admin cannot delete their own user, and the last admin of the system cannot be deleted
+- The last admin check runs in a transaction that locks the admin rows (`UPDLOCK, HOLDLOCK`), so two simultaneous requests cannot demote or delete the last two admins
 - A document belongs to the user in the token; an owner id sent in the request body is ignored
 - Reading, updating or deleting a document of another user returns `404`, the same answer as for a document that does not exist
 - Document type and number are required, with at most 50 characters each; the name is required, with at most 100; the description is optional, with at most 500
@@ -603,7 +604,6 @@ The JWT key and the initial admin password are not versioned: in development the
 |---|---|---|
 | A logout does not end the current JWT | The access token of that device keeps working for up to `Jwt:ExpirationInMinutes` (its refresh token is already revoked). A password change, a deleted user or a changed role is already blocked on every request | A short `Jwt:ExpirationInMinutes`, or a list of revoked token ids checked on every request |
 | One database query per authenticated request | The user check adds one small query (by primary key) to every request with a token | Cache the check for a short time if the load grows |
-| The last admin rule is not atomic | Two simultaneous requests can demote or delete the last two admins | A transaction with the right isolation level or a database lock |
 | Rate limiting is in memory and per IP | It resets when the API restarts, it is not shared between instances and, behind a proxy, everyone can look like the same IP | Distributed rate limiting (e.g. Redis) and `ForwardedHeaders` configuration |
 | The email is not verified on sign-up | A person can create an account with an email that is not theirs | Send a confirmation link and block the login until the email is confirmed |
 | Sign-up reveals whether an email has an account | The `409 EMAIL_ALREADY_IN_USE` answer lets anyone test which emails are registered | Answer every sign-up the same way and send the result by email |

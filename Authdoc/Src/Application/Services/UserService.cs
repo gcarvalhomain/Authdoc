@@ -4,6 +4,7 @@ using Authdoc.Application.DTOs;
 using Authdoc.Data;
 using Authdoc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 
 namespace Authdoc.Application.Services;
@@ -87,6 +88,7 @@ public class UserService
     // Same idea as UpdateAsync: the user comes back with the result.
     public async Task<(ChangeRoleResult Result, UserResponse? User)> ChangeRoleAsync(Guid id, UserRole role)
     {
+        await using var transaction = await BeginTransactionIfRelationalAsync(); // It keeps the admin count and the change together, so two admins cannot remove each other.
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
 
         if (user is null)
@@ -101,7 +103,7 @@ public class UserService
 
         if (user.Role == UserRole.Admin)
         {
-            var adminCount = await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
+            var adminCount = await CountAdminsWithLockAsync();
             if (adminCount <= 1)
             {
                 return (ChangeRoleResult.LastAdmin, null);
@@ -112,11 +114,13 @@ public class UserService
         user.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
+        await CommitIfStartedAsync(transaction); // It frees the locked admin rows only after the change is saved.
         return (ChangeRoleResult.Success, UserResponse.From(user));
     }
 
     public async Task<DeleteUserResult> DeleteAsync(Guid id)
     {
+        await using var transaction = await BeginTransactionIfRelationalAsync(); // Same reason as in ChangeRoleAsync.
         var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == id);
 
         if (user is null)
@@ -126,7 +130,7 @@ public class UserService
 
         if (user.Role == UserRole.Admin)
         {
-            var adminCount = await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
+            var adminCount = await CountAdminsWithLockAsync();
             if (adminCount <= 1)
             {
                 return DeleteUserResult.LastAdmin;
@@ -135,8 +139,39 @@ public class UserService
 
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
+        await CommitIfStartedAsync(transaction); // Same reason as in ChangeRoleAsync.
 
         return DeleteUserResult.Deleted;
+    }
+
+    // The InMemory test database has no transactions, so there it runs without one.
+    private async Task<IDbContextTransaction?> BeginTransactionIfRelationalAsync()
+    {
+        return _context.Database.IsRelational()
+            ? await _context.Database.BeginTransactionAsync()
+            : null;
+    }
+
+    private static async Task CommitIfStartedAsync(IDbContextTransaction? transaction)
+    {
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
+    }
+
+    // UPDLOCK + HOLDLOCK lock the admin rows until the transaction ends, so a second admin change waits and then sees the new count.
+    private async Task<int> CountAdminsWithLockAsync()
+    {
+        if (!_context.Database.IsRelational())
+        {
+            return await _context.Users.CountAsync(u => u.Role == UserRole.Admin);
+        }
+
+        var adminRole = (int)UserRole.Admin;
+        return await _context.Users
+            .FromSql($"SELECT * FROM Users WITH (UPDLOCK, HOLDLOCK) WHERE Role = {adminRole}")
+            .CountAsync();
     }
 
     // A token is accepted only while its user still exists and still has the role and the security stamp written in it.
