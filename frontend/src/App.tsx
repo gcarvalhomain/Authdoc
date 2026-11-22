@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router'
 import RequireAuth from './auth/RequireAuth.tsx'
 import AccountPage from './pages/AccountPage.tsx'
+import DocumentsPage from './pages/DocumentsPage.tsx'
 import HomePage from './pages/HomePage.tsx'
 import LoginPage from './pages/LoginPage.tsx'
 import NotFoundPage from './pages/NotFoundPage.tsx'
@@ -17,6 +18,7 @@ function App() {
       {/* The routes inside RequireAuth need a signed-in user. */}
       <Route element={<RequireAuth />}>
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
       </Route>
       {/* "*" matches any address that no route above matched. */}
       <Route path="*" element={<NotFoundPage />} />

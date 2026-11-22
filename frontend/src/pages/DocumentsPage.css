@@ -1,0 +1,72 @@
+/* The card around the table. overflow-x lets a wide table scroll to the side
+   on a small screen, instead of pushing the whole page wider than the screen. */
+.documents-table-wrapper {
+  margin-top: var(--space-16);
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow);
+}
+
+.documents-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.documents-table th,
+.documents-table td {
+  padding: var(--space-12) var(--space-16);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.documents-table th {
+  color: var(--color-text-secondary);
+  font-size: var(--size-small);
+  font-weight: 500;
+}
+
+/* A line between the rows, and none under the last one (the card has its border). */
+.documents-table tr:not(:last-child) td,
+.documents-table th {
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Numbers like "123.456.789-00" are easier to read with a monospace font. */
+.documents-number {
+  font-family: var(--font-mono);
+}
+
+/* "Loading", "no documents" and "page has no documents": a card with a short text. */
+.documents-message {
+  margin: var(--space-16) 0 0;
+  padding: var(--space-32) var(--space-24);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.documents-message p {
+  margin: 0 0 var(--space-16);
+}
+
+/* The error box, with the "Try again" button under it. */
+.documents-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-12);
+  margin-top: var(--space-16);
+}
+
+.documents-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-16);
+  margin-top: var(--space-16);
+  color: var(--color-text-secondary);
+}

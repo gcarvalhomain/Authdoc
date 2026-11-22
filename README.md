@@ -236,7 +236,7 @@ The tests use an **in-memory** database and their own configuration, so they do 
 
 ## Frontend
 
-The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity, the shared components, the sign-in and sign-up pages, and the session (the user stays signed in after a reload, the token is refreshed on its own, and the user can sign out). The documents pages come next.
+The web client is in the `frontend/` folder. It is in development: today it has the API client, the visual identity, the shared components, the sign-in and sign-up pages, and the session (the user stays signed in after a reload, the token is refreshed on its own, and the user can sign out), and the list of the user's documents. Creating, editing and deleting documents come next.
 
 ### Running the frontend
 
@@ -288,13 +288,20 @@ The routes are in `frontend/src/App.tsx` (React Router).
 
 | Route | Access | Page |
 |---|---|---|
-| `/` | Public | Home: links to sign in and to create an account, or to "My account" for a signed-in user |
+| `/` | Public | Home: links to sign in and to create an account, or to "My documents" and "My account" for a signed-in user |
 | `/login` | Public | Sign in. After it, the page the user tried to open, or `/account` |
 | `/register` | Public | Create an account. After it, the sign-in page opens with the email already filled in |
 | `/account` | Signed in | My account: name, email, role and sign-up date, read from `GET /api/auth/me` |
+| `/documents` | Signed in | My documents: a table with 10 documents per page, read from `GET /api/documents` |
 | any other | Public | Page not found |
 
-A signed-in user who opens `/login` or `/register` goes to `/account`. The header shows the user's name and a "Sign out" button.
+A signed-in user who opens `/login` or `/register` goes to `/account`. The header shows a "Documents" link, the user's name and a "Sign out" button.
+
+On `/documents`:
+
+- The page number is in the address (`/documents?page=2`), so a reload or the Back button keeps the same page. A wrong value, like `?page=abc`, opens page 1.
+- The page shows "Loading documents..." while it waits, a message when the user has no documents, and the error with a "Try again" button when the call fails. A page after the last one (for example `?page=99`) offers a link back to page 1.
+- Dates without a time (`issuedAt`, `expiresAt`) are formatted in UTC. Read as local time, `"2026-11-01"` would show as Oct 31 in Brazil (UTC-3).
 
 The development server answers every route with `index.html`, so a page also opens when you type its address or reload it. A production server needs the same rule.
 

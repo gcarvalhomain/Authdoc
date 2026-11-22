@@ -41,6 +41,18 @@
   color: var(--color-text-primary);
 }
 
+/* The link to the documents keeps its text on one line, like the button. */
+.page-header-link {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+
+.page-header-link:hover {
+  color: var(--color-primary);
+}
+
 /* The button keeps its size and its text on one line; the name gets smaller instead. */
 .page-header-user .button {
   flex-shrink: 0;
