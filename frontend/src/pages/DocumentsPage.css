@@ -70,3 +70,23 @@
   margin-top: var(--space-16);
   color: var(--color-text-secondary);
 }
+
+/* The title on the left and the "Add document" button on the right.
+   On a narrow screen the button goes under the title. */
+.documents-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-12);
+  margin-bottom: var(--space-8);
+}
+
+.documents-header h1 {
+  margin: 0;
+}
+
+/* The Edit link stays on the right end of its row. */
+.documents-actions {
+  text-align: right;
+}

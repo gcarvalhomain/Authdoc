@@ -85,6 +85,8 @@ export type DocumentRequest = {
   name: string
   number: string
   description: string | null
-  issuedAt: string
+  // Optional only so that an empty date can be left out. Without it, the API
+  // answers ISSUED_AT_REQUIRED; with an empty text ("") it answers INVALID_REQUEST.
+  issuedAt?: string
   expiresAt: string | null
 }

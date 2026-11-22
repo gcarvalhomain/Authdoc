@@ -39,3 +39,9 @@
 .field-error {
   color: var(--color-danger);
 }
+
+/* A text box with many lines: the user can make it taller, but not wider. */
+.field-textarea {
+  resize: vertical;
+  line-height: 1.5;
+}

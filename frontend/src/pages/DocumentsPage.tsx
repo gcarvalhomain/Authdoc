@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router'
-import { listDocuments } from '../api/documents.ts'
+import { Link, useLocation, useSearchParams } from 'react-router'
+import { documentsPageSize, listDocuments } from '../api/documents.ts'
 import { getErrorMessage } from '../api/errorMessages.ts'
 import type { DocumentResponse, PagedResponse } from '../api/types.ts'
 import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import PageLayout from '../shared/PageLayout.tsx'
+import '../shared/Button.css'
+import { readMessage, type DocumentFormState } from './documentHelpers.ts'
 import './DocumentsPage.css'
-
-const pageSize = 10
 
 // Reads the page number from the address (?page=2).
 // A missing or wrong value ("abc", "0", "-1", "2.5") means page 1.
@@ -35,6 +35,13 @@ function DocumentsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const page = readPage(searchParams.get('page'))
 
+  // The form sends a message here after a save, like "Document added.".
+  // A click on Previous or Next opens a new address without it, so it goes away.
+  const location = useLocation()
+  const message = readMessage(location.state)
+  // The form goes back to this exact list page after Save or Cancel.
+  const formState: DocumentFormState = { returnTo: location.pathname + location.search }
+
   // "Try again" adds 1 here. The number is in the effect's list below,
   // so a new number sends the same request once more.
   const [attempt, setAttempt] = useState(0)
@@ -45,7 +52,7 @@ function DocumentsPage() {
   useEffect(() => {
     // If the page changes before the answer arrives, ignore the old answer.
     let ignore = false
-    listDocuments(page, pageSize)
+    listDocuments(page, documentsPageSize)
       .then((data) => {
         if (!ignore) {
           setResult({ page, attempt, status: 'loaded', data })
@@ -73,7 +80,14 @@ function DocumentsPage() {
 
   return (
     <PageLayout>
-      <h1>My documents</h1>
+      <div className="documents-header">
+        <h1>My documents</h1>
+        <Link className="button button-primary" to="/documents/new" state={formState}>
+          Add document
+        </Link>
+      </div>
+
+      {message && <Alert variant="success">{message}</Alert>}
 
       {!current && <p className="documents-message">Loading documents...</p>}
 
@@ -84,19 +98,22 @@ function DocumentsPage() {
         </div>
       )}
 
-      {current?.status === 'loaded' && <DocumentsList data={current.data} onPageChange={goToPage} />}
+      {current?.status === 'loaded' && (
+        <DocumentsList data={current.data} formState={formState} onPageChange={goToPage} />
+      )}
     </PageLayout>
   )
 }
 
 type DocumentsListProps = {
   data: PagedResponse<DocumentResponse>
+  formState: DocumentFormState
   onPageChange: (page: number) => void
 }
 
 // The part of the page after the answer arrives: the table, or a message when
 // there is nothing to show.
-function DocumentsList({ data, onPageChange }: DocumentsListProps) {
+function DocumentsList({ data, formState, onPageChange }: DocumentsListProps) {
   // The user has no documents at all.
   if (data.totalCount === 0) {
     return <p className="documents-message">You have no documents yet.</p>
@@ -125,6 +142,10 @@ function DocumentsList({ data, onPageChange }: DocumentsListProps) {
               <th scope="col">Number</th>
               <th scope="col">Issued</th>
               <th scope="col">Expires</th>
+              {/* The column of the Edit links has a name for screen readers only. */}
+              <th scope="col">
+                <span className="visually-hidden">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -136,6 +157,16 @@ function DocumentsList({ data, onPageChange }: DocumentsListProps) {
                 <td className="documents-number">{document.number}</td>
                 <td>{formatDateOnly(document.issuedAt)}</td>
                 <td>{document.expiresAt ? formatDateOnly(document.expiresAt) : 'Never'}</td>
+                <td className="documents-actions">
+                  {/* aria-label: a screen reader says "Edit Passport", not only "Edit". */}
+                  <Link
+                    to={`/documents/${document.id}/edit`}
+                    state={formState}
+                    aria-label={`Edit ${document.name}`}
+                  >
+                    Edit
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
