@@ -13,7 +13,10 @@ function HomePage() {
         <h1>Welcome back, {auth.user.name}</h1>
         <p>A personal document vault.</p>
         <div className="home-actions">
-          <Link className="button button-primary" to="/account">
+          <Link className="button button-primary" to="/documents">
+            My documents
+          </Link>
+          <Link className="button button-secondary" to="/account">
             My account
           </Link>
         </div>

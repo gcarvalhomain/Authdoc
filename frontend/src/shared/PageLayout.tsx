@@ -35,6 +35,9 @@ function PageLayout({ children }: PageLayoutProps) {
 
           {auth.status === 'signedIn' && (
             <div className="page-header-user">
+              <Link className="page-header-link" to="/documents">
+                Documents
+              </Link>
               <Link className="page-header-name" to="/account">
                 {auth.user.name}
               </Link>
