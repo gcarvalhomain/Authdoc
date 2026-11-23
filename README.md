@@ -279,6 +279,7 @@ The session code is in `frontend/src/api/session.ts` (the tokens) and `frontend/
 - **Automatic refresh:** when a call with a token gets `401 UNAUTHORIZED` (expired token or changed role), `authRequest` refreshes the tokens and sends the call once more. Only one refresh runs at a time: the API accepts each refresh token only once, so two refreshes at the same time would end the session.
 - **Session ended:** when the API rejects the refresh token, the app forgets the tokens and opens the sign-in page with "Your session has ended".
 - **Sign out:** the app forgets the tokens at once and calls `POST /api/auth/logout`, which revokes the refresh token on the server. The other devices of the user stay signed in.
+- **Password change:** the API ends every session of the user, this device too, so the app signs out and asks for a new sign-in with the new password.
 - **Protected pages:** `RequireAuth` sends a user without a session to the sign-in page, and after the sign-in the user goes back to the page they tried to open.
 - **Known limitation:** any script on the page can read `localStorage`, so an XSS bug could steal the refresh token. The safer option is an `httpOnly` cookie set by the API, which the browser sends but scripts cannot read. Two tabs that refresh at the same moment can also sign one of them out.
 
@@ -291,8 +292,9 @@ The routes are in `frontend/src/App.tsx` (React Router).
 | `/` | Public | Home: links to sign in and to create an account, or to "My documents" and "My account" for a signed-in user |
 | `/login` | Public | Sign in. After it, the page the user tried to open, or `/account` |
 | `/register` | Public | Create an account. After it, the sign-in page opens with the email already filled in |
-| `/account` | Signed in | My account: name, email, role and sign-up date, read from `GET /api/auth/me` |
-| `/documents` | Signed in | My documents: a table with 10 documents per page, read from `GET /api/documents` |
+| `/account` | Signed in | My account: name, email, role and sign-up date, read from `GET /api/auth/me`, and a "Change password" link |
+| `/account/password` | Signed in | Change password, saved with `PUT /api/auth/password`. After it, the sign-in page opens with "Your password was changed" |
+| `/documents` | Signed in | My documents: a table with 10 documents per page, read from `GET /api/documents`, with Edit and Delete in each row |
 | `/documents/new` | Signed in | Add document: the document form, saved with `POST /api/documents` |
 | `/documents/:id/edit` | Signed in | Edit document: the same form, filled from `GET /api/documents/{id}` and saved with `PUT /api/documents/{id}` |
 | any other | Public | Page not found |
@@ -304,6 +306,7 @@ On `/documents`:
 - The page number is in the address (`/documents?page=2`), so a reload or the Back button keeps the same page. A wrong value, like `?page=abc`, opens page 1.
 - The page shows "Loading documents..." while it waits, a message when the user has no documents, and the error with a "Try again" button when the call fails. A page after the last one (for example `?page=99`) offers a link back to page 1.
 - Dates without a time (`issuedAt`, `expiresAt`) are formatted in UTC. Read as local time, `"2026-11-01"` would show as Oct 31 in Brazil (UTC-3).
+- Delete asks inside the row ("Delete this document?") before it calls `DELETE /api/documents/{id}`. After it, the list loads again with "Document deleted."; when the last document of a page is deleted, the page before opens. A document already deleted in another tab (`404`) only loads the list again.
 
 On the add and edit pages:
 
@@ -327,7 +330,7 @@ frontend/
     ├── index.css            # Visual identity: colors, fonts, sizes and spacing as CSS variables
     ├── api/                 # API client, session tokens, auth calls, types and error messages
     ├── auth/                # Session in React: AuthContext, AuthProvider, RequireAuth
-    ├── pages/               # One component per page: Home, Login, Register, Account, NotFound
+    ├── pages/               # One component per page: Home, Login, Register, Account, ChangePassword, Documents, NotFound
     └── shared/              # Shared components: Alert, Button, Input, PageLayout
 ```
 
