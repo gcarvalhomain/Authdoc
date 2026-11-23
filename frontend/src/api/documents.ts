@@ -30,6 +30,11 @@ export function createDocument(request: DocumentRequest): Promise<DocumentRespon
   return authRequest<DocumentResponse>('/documents', { method: 'POST', body: request })
 }
 
+// Deletes a document. The API answers 204 No Content, so there is nothing to return.
+export function deleteDocument(id: string): Promise<void> {
+  return authRequest<void>(`/documents/${encodeURIComponent(id)}`, { method: 'DELETE' })
+}
+
 // Replaces all the fields of a document and returns it.
 export function updateDocument(id: string, request: DocumentRequest): Promise<DocumentResponse> {
   return authRequest<DocumentResponse>(`/documents/${encodeURIComponent(id)}`, {

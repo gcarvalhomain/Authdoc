@@ -86,7 +86,39 @@
   margin: 0;
 }
 
-/* The Edit link stays on the right end of its row. */
+/* The Edit link and the Delete button stay on the right end of their row. */
 .documents-actions {
   text-align: right;
+}
+
+/* A button that looks like a link, in red: deleting cannot be undone. */
+.documents-delete {
+  margin-left: var(--space-16);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  font: inherit;
+  cursor: pointer;
+}
+
+.documents-delete:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.documents-delete:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.documents-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* The question and its two buttons on one line, inside the row. */
+.documents-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-8);
 }

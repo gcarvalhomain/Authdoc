@@ -29,6 +29,19 @@
   background: var(--color-primary-hover);
 }
 
+/* Red, for an action that cannot be undone. There is no hover color in the
+   palette, so the hover makes the same red a little darker. */
+.button-danger {
+  border-color: var(--color-danger);
+  background: var(--color-danger);
+  color: var(--color-surface);
+}
+
+.button-danger:hover:not(:disabled) {
+  background: var(--color-danger);
+  filter: brightness(0.9);
+}
+
 .button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
