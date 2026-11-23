@@ -14,6 +14,7 @@ import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import Input from '../shared/Input.tsx'
 import PageLayout from '../shared/PageLayout.tsx'
+import type { PasswordChangedState } from './ChangePasswordPage.tsx'
 import './AuthPage.css'
 
 type LoginField = 'email' | 'password'
@@ -25,9 +26,10 @@ const fieldByCode: FieldByCode<LoginField> = {
   PASSWORD_REQUIRED: 'password',
 }
 
-// Two pages send state to this page:
+// Three pages send state to this page:
 // - the sign-up page sends { registeredEmail } after it creates an account;
-// - RequireAuth sends { from } with the page the user tried to open.
+// - RequireAuth sends { from } with the page the user tried to open;
+// - the change password page sends { passwordChanged: true } (see readPasswordChanged).
 // The state can be anything (or nothing), so each part is checked before it is used.
 function readText(state: unknown, key: 'registeredEmail' | 'from'): string | null {
   if (typeof state === 'object' && state !== null && key in state) {
@@ -38,11 +40,21 @@ function readText(state: unknown, key: 'registeredEmail' | 'from'): string | nul
   return null
 }
 
+// True only for the exact value that the change password page sends.
+function readPasswordChanged(state: unknown): boolean {
+  return (
+    typeof state === 'object' &&
+    state !== null &&
+    (state as Partial<PasswordChangedState>).passwordChanged === true
+  )
+}
+
 function LoginPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const { auth, signIn } = useAuth()
   const registeredEmail = readText(location.state, 'registeredEmail')
+  const passwordChanged = readPasswordChanged(location.state)
   // After the sign-in: the page the user tried to open, or "My account".
   const destination = readText(location.state, 'from') ?? '/account'
 
@@ -86,8 +98,14 @@ function LoginPage() {
         {!hasFormErrors(errors) && registeredEmail && (
           <Alert variant="success">Your account was created. Sign in to continue.</Alert>
         )}
+        {!hasFormErrors(errors) && passwordChanged && (
+          <Alert variant="success">
+            Your password was changed. Sign in with your new password.
+          </Alert>
+        )}
         {!hasFormErrors(errors) &&
           !registeredEmail &&
+          !passwordChanged &&
           auth.status === 'signedOut' &&
           auth.sessionExpired && <Alert variant="error">{sessionEnded}</Alert>}
 
