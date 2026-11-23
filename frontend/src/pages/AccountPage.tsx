@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router'
 import { getMe } from '../api/auth.ts'
 import { getErrorMessage } from '../api/errorMessages.ts'
 import type { UserResponse } from '../api/types.ts'
 import Alert from '../shared/Alert.tsx'
 import PageLayout from '../shared/PageLayout.tsx'
+import '../shared/Button.css'
 import './AccountPage.css'
 
 function formatDate(isoDate: string): string {
@@ -55,6 +57,15 @@ function AccountPage() {
           <dt>Member since</dt>
           <dd>{formatDate(user.createdAt)}</dd>
         </dl>
+      )}
+
+      {user && (
+        <p className="account-actions">
+          {/* A link with the button classes: it opens a page, so it is a link. */}
+          <Link className="button button-secondary" to="/account/password">
+            Change password
+          </Link>
+        </p>
       )}
     </PageLayout>
   )

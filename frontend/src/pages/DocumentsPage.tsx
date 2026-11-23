@@ -1,13 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router'
-import { documentsPageSize, listDocuments } from '../api/documents.ts'
+import { ApiError } from '../api/client.ts'
+import { deleteDocument, documentsPageSize, listDocuments } from '../api/documents.ts'
 import { getErrorMessage } from '../api/errorMessages.ts'
 import type { DocumentResponse, PagedResponse } from '../api/types.ts'
 import Alert from '../shared/Alert.tsx'
 import Button from '../shared/Button.tsx'
 import PageLayout from '../shared/PageLayout.tsx'
 import '../shared/Button.css'
-import { readMessage, type DocumentFormState } from './documentHelpers.ts'
+import {
+  readMessage,
+  type DocumentFormState,
+  type DocumentsListState,
+} from './documentHelpers.ts'
 import './DocumentsPage.css'
 
 // Reads the page number from the address (?page=2).
@@ -69,9 +74,65 @@ function DocumentsPage() {
     }
   }, [page, attempt])
 
-  function goToPage(newPage: number) {
+  // The delete has two clicks: "Delete" opens a question in the row (confirmingId),
+  // and the second "Delete" sends the call (deletingId while it waits).
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
+  // False after the user leaves the page. A delete answer that arrives later
+  // must not bring the user back to the list.
+  const isMounted = useRef(true)
+  useEffect(() => {
+    isMounted.current = true
+    return () => {
+      isMounted.current = false
+    }
+  }, [])
+
+  function goToPage(newPage: number, state?: DocumentsListState) {
+    // A question or an error of the old page does not belong to the new one.
+    setConfirmingId(null)
+    setDeleteError(null)
     // Page 1 is the default, so the address stays clean: /documents.
-    setSearchParams(newPage === 1 ? {} : { page: String(newPage) })
+    // replace + state: after a delete, the message goes with the address,
+    // and the Back button does not show the deleted document again.
+    setSearchParams(newPage === 1 ? {} : { page: String(newPage) }, state && { replace: true, state })
+  }
+
+  async function handleDelete(document: DocumentResponse, itemsOnPage: number) {
+    setDeleteError(null)
+    setDeletingId(document.id)
+
+    let message = 'Document deleted.'
+    try {
+      await deleteDocument(document.id)
+    } catch (caught) {
+      // Already deleted (for example, in another tab): the goal is reached,
+      // so the list only loads again. Any other error stays on this page.
+      if (!(caught instanceof ApiError) || caught.code !== 'DOCUMENT_NOT_FOUND') {
+        if (isMounted.current) {
+          setDeleteError(getErrorMessage(caught))
+          setDeletingId(null)
+          setConfirmingId(null)
+        }
+        return
+      }
+      message = 'This document was already deleted.'
+    }
+
+    if (!isMounted.current) {
+      return
+    }
+
+    setDeletingId(null)
+    // The last document of a page leaves that page empty, so the list shows
+    // the page before it. Page 1 stays page 1 (it shows "no documents yet").
+    const newPage = itemsOnPage === 1 && page > 1 ? page - 1 : page
+    goToPage(newPage, { message })
+    // The address can stay the same (same page), so a new attempt makes the
+    // list load again from the API.
+    setAttempt((value) => value + 1)
   }
 
   // A result of another page or another attempt is old: the answer for this one
@@ -87,7 +148,8 @@ function DocumentsPage() {
         </Link>
       </div>
 
-      {message && <Alert variant="success">{message}</Alert>}
+      {message && !deleteError && <Alert variant="success">{message}</Alert>}
+      {deleteError && <Alert variant="error">{deleteError}</Alert>}
 
       {!current && <p className="documents-message">Loading documents...</p>}
 
@@ -99,21 +161,49 @@ function DocumentsPage() {
       )}
 
       {current?.status === 'loaded' && (
-        <DocumentsList data={current.data} formState={formState} onPageChange={goToPage} />
+        <DocumentsList
+          data={current.data}
+          formState={formState}
+          onPageChange={goToPage}
+          deleteState={{ confirmingId, deletingId }}
+          onAskDelete={(id) => {
+            setDeleteError(null)
+            setConfirmingId(id)
+          }}
+          onCancelDelete={() => setConfirmingId(null)}
+          onConfirmDelete={(document) => handleDelete(document, current.data.items.length)}
+        />
       )}
     </PageLayout>
   )
+}
+
+type DeleteState = {
+  confirmingId: string | null
+  deletingId: string | null
 }
 
 type DocumentsListProps = {
   data: PagedResponse<DocumentResponse>
   formState: DocumentFormState
   onPageChange: (page: number) => void
+  deleteState: DeleteState
+  onAskDelete: (id: string) => void
+  onCancelDelete: () => void
+  onConfirmDelete: (document: DocumentResponse) => void
 }
 
 // The part of the page after the answer arrives: the table, or a message when
 // there is nothing to show.
-function DocumentsList({ data, formState, onPageChange }: DocumentsListProps) {
+function DocumentsList({
+  data,
+  formState,
+  onPageChange,
+  deleteState,
+  onAskDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: DocumentsListProps) {
   // The user has no documents at all.
   if (data.totalCount === 0) {
     return <p className="documents-message">You have no documents yet.</p>
@@ -142,7 +232,7 @@ function DocumentsList({ data, formState, onPageChange }: DocumentsListProps) {
               <th scope="col">Number</th>
               <th scope="col">Issued</th>
               <th scope="col">Expires</th>
-              {/* The column of the Edit links has a name for screen readers only. */}
+              {/* The column of the Edit and Delete actions has a name for screen readers only. */}
               <th scope="col">
                 <span className="visually-hidden">Actions</span>
               </th>
@@ -158,14 +248,14 @@ function DocumentsList({ data, formState, onPageChange }: DocumentsListProps) {
                 <td>{formatDateOnly(document.issuedAt)}</td>
                 <td>{document.expiresAt ? formatDateOnly(document.expiresAt) : 'Never'}</td>
                 <td className="documents-actions">
-                  {/* aria-label: a screen reader says "Edit Passport", not only "Edit". */}
-                  <Link
-                    to={`/documents/${document.id}/edit`}
-                    state={formState}
-                    aria-label={`Edit ${document.name}`}
-                  >
-                    Edit
-                  </Link>
+                  <DocumentActions
+                    document={document}
+                    formState={formState}
+                    deleteState={deleteState}
+                    onAskDelete={onAskDelete}
+                    onCancelDelete={onCancelDelete}
+                    onConfirmDelete={onConfirmDelete}
+                  />
                 </td>
               </tr>
             ))}
@@ -190,6 +280,71 @@ function DocumentsList({ data, formState, onPageChange }: DocumentsListProps) {
           </Button>
         </nav>
       )}
+    </>
+  )
+}
+
+type DocumentActionsProps = {
+  document: DocumentResponse
+  formState: DocumentFormState
+  deleteState: DeleteState
+  onAskDelete: (id: string) => void
+  onCancelDelete: () => void
+  onConfirmDelete: (document: DocumentResponse) => void
+}
+
+// The last cell of a row: "Edit" and "Delete", or the delete question.
+function DocumentActions({
+  document,
+  formState,
+  deleteState,
+  onAskDelete,
+  onCancelDelete,
+  onConfirmDelete,
+}: DocumentActionsProps) {
+  const isDeleting = deleteState.deletingId === document.id
+
+  if (deleteState.confirmingId === document.id) {
+    return (
+      // role="group" + aria-label: a screen reader reads the question with its buttons.
+      <span className="documents-confirm" role="group" aria-label={`Delete ${document.name}?`}>
+        <span>Delete this document?</span>
+        <Button
+          variant="danger"
+          disabled={isDeleting}
+          ariaLabel={`Yes, delete ${document.name}`}
+          onClick={() => onConfirmDelete(document)}
+        >
+          {isDeleting ? 'Deleting...' : 'Delete'}
+        </Button>
+        {/* autoFocus: the keyboard focus moves here, the safe choice, when the question opens. */}
+        <Button disabled={isDeleting} autoFocus onClick={onCancelDelete}>
+          Cancel
+        </Button>
+      </span>
+    )
+  }
+
+  return (
+    <>
+      {/* aria-label: a screen reader says "Edit Passport", not only "Edit". */}
+      <Link
+        to={`/documents/${document.id}/edit`}
+        state={formState}
+        aria-label={`Edit ${document.name}`}
+      >
+        Edit
+      </Link>
+      {/* While another document is being deleted, the other Delete buttons wait. */}
+      <button
+        type="button"
+        className="documents-delete"
+        aria-label={`Delete ${document.name}`}
+        disabled={deleteState.deletingId !== null}
+        onClick={() => onAskDelete(document.id)}
+      >
+        Delete
+      </button>
     </>
   )
 }

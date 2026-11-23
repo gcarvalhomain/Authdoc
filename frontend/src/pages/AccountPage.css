@@ -12,6 +12,10 @@
   box-shadow: var(--shadow);
 }
 
+.account-actions {
+  margin: var(--space-16) 0 0;
+}
+
 .account-details dt {
   color: var(--color-text-secondary);
 }

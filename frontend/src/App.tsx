@@ -1,6 +1,7 @@
 import { Route, Routes } from 'react-router'
 import RequireAuth from './auth/RequireAuth.tsx'
 import AccountPage from './pages/AccountPage.tsx'
+import ChangePasswordPage from './pages/ChangePasswordPage.tsx'
 import DocumentsPage from './pages/DocumentsPage.tsx'
 import EditDocumentPage from './pages/EditDocumentPage.tsx'
 import HomePage from './pages/HomePage.tsx'
@@ -20,6 +21,7 @@ function App() {
       {/* The routes inside RequireAuth need a signed-in user. */}
       <Route element={<RequireAuth />}>
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/password" element={<ChangePasswordPage />} />
         <Route path="/documents" element={<DocumentsPage />} />
         <Route path="/documents/new" element={<NewDocumentPage />} />
         {/* ":id" is a part of the address that the page reads with useParams. */}
