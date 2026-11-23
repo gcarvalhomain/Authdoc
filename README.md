@@ -80,7 +80,7 @@ Today Authdoc is an **identity and user management API** in which each user can 
 ## Concepts and fundamentals applied
 
 - **Stateless authentication with JWT:** the token is signed with HMAC-SHA256 and carries identity claims (`NameIdentifier`, `Name`, `Email`, `Role`). The API validates issuer, audience, lifetime and signature on every request, and then checks in the database that the user still exists and still has the role and the security stamp in the token. A password change creates a new security stamp, so every access token made before it stops working at once, on every device.
-- **Refresh token with rotation:** each use generates a new token and revokes the previous one. Only the SHA-256 hash is stored in the database.
+- **Refresh token with rotation:** each use generates a new token and revokes the previous one. Only the SHA-256 hash is stored in the database. `RevokedAt` is a concurrency token, so when two requests use the same refresh token at the same time, only the first one gets a new session and the other gets `401 INVALID_REFRESH_TOKEN`.
 - **Role-based access control (RBAC):** an `Admin` policy protects the administrative routes.
 - **Salted password hashing:** passwords are never stored in plain text. The `PasswordHasher` generates PBKDF2 hashes with a random salt and format versioning, which allows a rehash when the algorithm evolves.
 - **Dependency injection and service lifetime:** services and the `DbContext` are registered as *Scoped* (one per request). At startup, an explicit scope is created for the database bootstrap.
@@ -227,7 +227,7 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `AuthService` rules (a too long password is never hashed, logout revokes the token only once), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
+| Unit | `EmailValidator`, the initial admin seed (`DbInitializer`), the `AuthService` rules (a too long password is never hashed, logout revokes the token only once, a refresh token gives only one new session when two requests use it at the same time), the `UserService` rules (last admin, deletion, role change) and the `DocumentService` rules (each operation only reaches the owner's own documents) |
 | Integration | The whole API over HTTP with `WebApplicationFactory`: public sign-up, authentication, refresh token, logout, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an **in-memory** database and their own configuration, so they do not need SQL Server or User Secrets.
@@ -481,6 +481,7 @@ Request body for `POST` and `PUT`:
 - A role change or a user deletion takes effect at once: every request checks that the user of the token still exists and still has the role in the token, otherwise the answer is `401 UNAUTHORIZED`, and the client must refresh or log in again
 - An admin cannot change their own role, and the last admin of the system cannot be demoted
 - An admin cannot delete their own user, and the last admin of the system cannot be deleted
+- The last admin check runs in a transaction that locks the admin rows (`UPDLOCK, HOLDLOCK`), so two simultaneous requests cannot demote or delete the last two admins
 - A document belongs to the user in the token; an owner id sent in the request body is ignored
 - Reading, updating or deleting a document of another user returns `404`, the same answer as for a document that does not exist
 - Document type and number are required, with at most 50 characters each; the name is required, with at most 100; the description is optional, with at most 500
@@ -620,7 +621,6 @@ The JWT key and the initial admin password are not versioned: in development the
 |---|---|---|
 | A logout does not end the current JWT | The access token of that device keeps working for up to `Jwt:ExpirationInMinutes` (its refresh token is already revoked). A password change, a deleted user or a changed role is already blocked on every request | A short `Jwt:ExpirationInMinutes`, or a list of revoked token ids checked on every request |
 | One database query per authenticated request | The user check adds one small query (by primary key) to every request with a token | Cache the check for a short time if the load grows |
-| The last admin rule is not atomic | Two simultaneous requests can demote or delete the last two admins | A transaction with the right isolation level or a database lock |
 | Rate limiting is in memory and per IP | It resets when the API restarts, it is not shared between instances and, behind a proxy, everyone can look like the same IP | Distributed rate limiting (e.g. Redis) and `ForwardedHeaders` configuration |
 | The email is not verified on sign-up | A person can create an account with an email that is not theirs | Send a confirmation link and block the login until the email is confirmed |
 | Sign-up reveals whether an email has an account | The `409 EMAIL_ALREADY_IN_USE` answer lets anyone test which emails are registered | Answer every sign-up the same way and send the result by email |

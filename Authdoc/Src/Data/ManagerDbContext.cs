@@ -65,6 +65,9 @@ public class ManagerDbContext : DbContext
             entity.HasIndex(t => t.TokenHash)
                 .IsUnique();
 
+            entity.Property(t => t.RevokedAt)
+                .IsConcurrencyToken(); // It makes the revoke fail when another request revoked the same token first.
+
             entity.HasOne(t => t.User)
                 .WithMany()
                 .HasForeignKey(t => t.UserId)

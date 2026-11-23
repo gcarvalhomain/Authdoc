@@ -82,6 +82,7 @@ namespace Authdoc.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("RevokedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime2");
 
                     b.Property<string>("TokenHash")
