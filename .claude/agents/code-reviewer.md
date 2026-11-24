@@ -13,7 +13,7 @@ Use git diff main...HEAD to see the changes and apply the checklist:
 - No entity returned without a DTO
 - OwnerId comes from the token, queries filter by owner, another user's document returns 404
 - Tests included for what changed
-- README updated if the API behaviour changed
+- README and docs/ updated if the API behaviour changed
 - Migrations: clear name, no unannounced data loss
 
 Reply with a numbered table:

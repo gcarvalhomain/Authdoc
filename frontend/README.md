@@ -4,7 +4,7 @@ The web client of Authdoc, built with React, TypeScript and Vite.
 
 ## How to run
 
-The API must be running first (see the README in the repository root).
+The API must be running first (see the README in the repository root). The pages, the session and the structure are explained in [docs/frontend.md](../docs/frontend.md).
 
 ```bash
 cd frontend

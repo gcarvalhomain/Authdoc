@@ -34,12 +34,12 @@ public static class DbInitializer
         {
             throw new InvalidOperationException(
                 $"There is no admin, and the email {adminEmail} already belongs to a normal user. " +
-                "Delete or rename that user before starting the API. See README.md for instructions.");
+                "Delete or rename that user before starting the API. See 'The first admin' in docs/development.md.");
         }
 
         if (string.IsNullOrWhiteSpace(adminPassword))
         {
-            throw new InvalidOperationException("SeedData:AdminPassword is not configured. See README.md for instructions.");
+            throw new InvalidOperationException("SeedData:AdminPassword is not configured. See 'Initial admin password' in docs/development.md.");
         }
 
         var now = DateTime.UtcNow;

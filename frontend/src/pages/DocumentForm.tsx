@@ -15,8 +15,8 @@ import './DocumentForm.css'
 
 type DocumentField = keyof DocumentFormValues
 
-// The validation codes of POST and PUT /api/documents (see "Error format" in the
-// README), and the field that shows each one. Any other error, like no connection
+// The validation codes of POST and PUT /api/documents (see "Error format" in
+// docs/api.md), and the field that shows each one. Any other error, like no connection
 // or DOCUMENT_NOT_FOUND, shows at the top of the form.
 const fieldByCode: FieldByCode<DocumentField> = {
   TYPE_REQUIRED: 'type',

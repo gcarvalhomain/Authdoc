@@ -16,7 +16,7 @@ import './AuthPage.css'
 
 type PasswordField = 'currentPassword' | 'newPassword' | 'confirmationPassword'
 
-// The validation codes of PUT /api/auth/password (see "Error format" in the README).
+// The validation codes of PUT /api/auth/password (see "Error format" in docs/api.md).
 // Any other code (too many attempts, no connection...) shows at the top of the form.
 const fieldByCode: FieldByCode<PasswordField> = {
   CURRENT_PASSWORD_REQUIRED: 'currentPassword',

@@ -16,7 +16,7 @@ import './AuthPage.css'
 
 type RegisterField = 'name' | 'email' | 'password' | 'confirmationPassword'
 
-// The validation codes of POST /api/auth/register (see "Error format" in the README).
+// The validation codes of POST /api/auth/register (see "Error format" in docs/api.md).
 const fieldByCode: FieldByCode<RegisterField> = {
   NAME_REQUIRED: 'name',
   NAME_TOO_LONG: 'name',

@@ -13,7 +13,7 @@ description: Adds a new feature or Minimal API endpoint to Authdoc, from the ent
 5. Endpoint (Minimal API, never a Controller) calling only the service
 6. New error codes in ApiErrors.cs
 7. Tests: follow the write-tests skill
-8. Update the README tables
+8. Update docs/api.md (routes, rules and error codes), and the README overview when a new area appears
 
 ## Layer rules
 - Endpoint → Service → DbContext. The endpoint never touches the DbContext.
