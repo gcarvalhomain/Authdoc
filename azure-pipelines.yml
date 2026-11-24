@@ -48,7 +48,9 @@ steps:
   condition: and(succeeded(), eq(variables['deployEnabled'], 'true'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
   inputs:
     ConnectionType: 'AzureRM'
-    azureSubscription: 'Azure subscription 1(3ed77e66-426e-4959-a6f2-add9fc3d59b3)'
+    # The id of the Azure Resource Manager service connection in Azure DevOps (Project settings > Service connections).
+    # It is the id of the connection, not of the Azure subscription, and it is not a secret.
+    azureSubscription: '1736ff80-87bd-4e01-8e48-2d40bc9d560a'
     appType: 'webApp'
     WebAppName: authdoc-gabriel
     packageForLinux: '$(Build.ArtifactStagingDirectory)/**/*.zip'
