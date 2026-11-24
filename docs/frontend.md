@@ -67,12 +67,12 @@ The session code is in `frontend/src/api/session.ts` (the tokens) and `frontend/
 | Refresh token | `localStorage` | After a reload, the app exchanges it for new tokens, so the user stays signed in |
 | Signed-in user | `AuthContext` (React Context) | Every page reads it with `useAuth()` |
 
-- **Automatic refresh:** when a call gets `401 UNAUTHORIZED`, the app refreshes the tokens and sends the call once more. Only one refresh runs at a time, because the API accepts each refresh token only once.
+- **Automatic refresh:** when a call gets `401 UNAUTHORIZED`, the app refreshes the tokens and sends the call once more. Only one refresh runs at a time, in all the tabs together, because the API accepts each refresh token only once: a Web Lock (`navigator.locks`) lets one tab refresh while the others wait, and a tab that waited reads the new token from `localStorage`.
 - **Session ended:** when the API rejects the refresh token, the app forgets the tokens and opens the sign-in page with "Your session has ended".
 - **Sign out:** the app forgets the tokens at once and calls `POST /api/auth/logout`. The other devices stay signed in.
 - **Password change:** the API ends every session of the user, so the app signs out and asks for a new sign-in.
 - **Protected pages:** `RequireAuth` sends a user without a session to the sign-in page, and back to the same page after the sign-in.
-- **Known limitation:** any script on the page can read `localStorage`, so an XSS bug could steal the refresh token. Two tabs that refresh at the same moment can also sign one of them out. See [Security](security.md#known-limitations).
+- **Known limitation:** any script on the page can read `localStorage`, so an XSS bug could steal the refresh token. A browser without Web Locks (or a page that is not https) refreshes without the lock, so two tabs that refresh together can sign one of them out. See [Security](security.md#known-limitations).
 
 ## Structure
 

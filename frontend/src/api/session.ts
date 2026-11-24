@@ -102,7 +102,26 @@ export function onSessionExpired(listener: () => void): () => void {
   }
 }
 
+// The name of the lock that every tab of the app shares.
+const refreshLockName = 'authdoc.refresh'
+
+// Only one tab refreshes at a time. All the tabs share the refresh token in
+// localStorage, and the API accepts each refresh token only once: if two tabs
+// sent the same token, the API would see a used token come back.
+//
+// navigator.locks (the Web Locks API) gives the lock to one tab at a time, and
+// the other tabs wait. The token is read inside the lock, so a tab that waited
+// reads the new token that the first tab saved, not the used one.
 async function runRefresh(): Promise<LoginResponse> {
+  // Old browsers, and pages that are not https (except localhost), have no Web Locks.
+  if (!('locks' in navigator)) {
+    return refreshWithSavedToken()
+  }
+
+  return navigator.locks.request(refreshLockName, () => refreshWithSavedToken())
+}
+
+async function refreshWithSavedToken(): Promise<LoginResponse> {
   const refreshToken = getRefreshToken()
   if (!refreshToken) {
     throw new ApiError(401, 'UNAUTHORIZED', 'There is no session to refresh')
