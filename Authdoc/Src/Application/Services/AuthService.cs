@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using LoginRequest = Authdoc.Application.DTOs.LoginRequest;
 
@@ -21,15 +22,20 @@ public class AuthService
 {
     public const string SecurityStampClaimType = "security_stamp"; // It is the name of the claim that carries the user's security stamp in the token.
 
+    // How many times the reuse revoke tries again when another request changes the same tokens at the same moment.
+    private const int MaxReuseRevokeAttempts = 3;
+
     private readonly ManagerDbContext _context;
     private readonly IPasswordHasher<User> _passwordHasher;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(ManagerDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
+    public AuthService(ManagerDbContext context, IPasswordHasher<User> passwordHasher, IConfiguration configuration, ILogger<AuthService> logger)
     {
         _context = context;
         _passwordHasher = passwordHasher;
         _configuration = configuration;
+        _logger = logger; // It writes the warning when a reused refresh token is detected.
     }
 
 
@@ -98,12 +104,27 @@ public class AuthService
             .Include(token => token.User)
             .FirstOrDefaultAsync(token => token.TokenHash == tokenHash);
 
-        if (storedToken is null || !storedToken.IsActive(DateTime.UtcNow))
+        if (storedToken is null)
+        {
+            return null;
+        }
+
+        // A normal client never sends a used token again, so a rotated token that comes back
+        // means that someone has a copy of it (the user or an attacker already has its successor).
+        if (storedToken.RevokeReason == RefreshTokenRevokeReason.Rotated)
+        {
+            await EndAllSessionsAfterReuseAsync(storedToken.UserId); // It is for a stolen refresh token to end the attacker's session too.
+            return null; // The same 401 as any invalid token, so the caller does not learn that the reuse was detected.
+        }
+
+        // Expired, or revoked by a logout or a password change: not a sign of theft, only invalid.
+        if (!storedToken.IsActive(DateTime.UtcNow))
         {
             return null;
         }
 
         storedToken.RevokedAt = DateTime.UtcNow;
+        storedToken.RevokeReason = RefreshTokenRevokeReason.Rotated; // It marks the token as used, so a later reuse can be detected.
 
         try
         {
@@ -133,6 +154,7 @@ public class AuthService
         }
 
         storedToken.RevokedAt = DateTime.UtcNow;
+        storedToken.RevokeReason = RefreshTokenRevokeReason.Logout; // A logged-out token that comes back is not treated as theft.
 
         try
         {
@@ -142,6 +164,47 @@ public class AuthService
         {
             // It ignores the conflict, because another request already revoked this token and that is the goal.
         }
+    }
+
+    // A rotated refresh token came back. Every active refresh token of the user is revoked, and a
+    // new security stamp makes every access token stop working, so the attacker loses access too.
+    private async Task EndAllSessionsAfterReuseAsync(Guid userId)
+    {
+        for (var attempt = 1; ; attempt++)
+        {
+            var now = DateTime.UtcNow;
+            var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == userId);
+            if (user is null)
+            {
+                return;
+            }
+
+            var activeTokens = await _context.RefreshTokens
+                .Where(token => token.UserId == userId && token.RevokedAt == null)
+                .ToListAsync();
+
+            foreach (var token in activeTokens)
+            {
+                token.RevokedAt = now;
+                token.RevokeReason = RefreshTokenRevokeReason.ReuseDetected;
+            }
+
+            user.SecurityStamp = Guid.NewGuid(); // It is for the access tokens made from the stolen token to stop working at once.
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                break;
+            }
+            catch (DbUpdateConcurrencyException) when (attempt < MaxReuseRevokeAttempts)
+            {
+                // Another request revoked one of these tokens at the same moment: read them again and retry.
+                _context.ChangeTracker.Clear();
+            }
+        }
+
+        // Only the user id is written: a token never goes to the log.
+        _logger.LogWarning("A used refresh token was sent again for user {UserId}. Every session of the user was ended.", userId);
     }
 
     public async Task<ChangePasswordResult> ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
@@ -176,6 +239,7 @@ public class AuthService
         foreach (var token in activeTokens)
         {
             token.RevokedAt = now;
+            token.RevokeReason = RefreshTokenRevokeReason.PasswordChange; // An old device that tries this token later is not treated as theft.
         }
 
         await _context.SaveChangesAsync();

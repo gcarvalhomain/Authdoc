@@ -5,6 +5,7 @@ using Authdoc.Models.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Authdoc.Tests;
 
@@ -38,7 +39,7 @@ public class AuthServiceTests
         using var context = CreateContext();
         await AddUserAsync(context, "login-too-long@gmail.com");
         var hasher = new CountingPasswordHasher();
-        var service = new AuthService(context, hasher, new ConfigurationBuilder().Build());
+        var service = new AuthService(context, hasher, new ConfigurationBuilder().Build(), NullLogger<AuthService>.Instance);
 
         // Act
         var result = await service.LoginAsync(new LoginRequest
@@ -59,7 +60,7 @@ public class AuthServiceTests
         using var context = CreateContext();
         var user = await AddUserAsync(context, "change-too-long@gmail.com");
         var hasher = new CountingPasswordHasher();
-        var service = new AuthService(context, hasher, new ConfigurationBuilder().Build());
+        var service = new AuthService(context, hasher, new ConfigurationBuilder().Build(), NullLogger<AuthService>.Instance);
 
         // Act
         var result = await service.ChangePasswordAsync(user.Id, new ChangePasswordRequest
@@ -156,6 +157,103 @@ public class AuthServiceTests
         Assert.Null(exception);
     }
 
+    [Fact]
+    public async Task RefreshAsync_WithRotatedToken_RevokesEverySessionAndChangesStamp()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = await AddUserAsync(context, "reuse-rotated@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var stolen = await service.LoginAsync(new LoginRequest { Email = "reuse-rotated@gmail.com", Password = "senha123" });
+        await service.LoginAsync(new LoginRequest { Email = "reuse-rotated@gmail.com", Password = "senha123" });
+        // The attacker uses the stolen token first and gets a new session.
+        var attackerSession = await service.RefreshAsync(stolen!.RefreshToken);
+        var stampBefore = user.SecurityStamp;
+
+        // Act
+        // The real user sends the same token again.
+        var result = await service.RefreshAsync(stolen.RefreshToken);
+
+        // Assert
+        Assert.NotNull(attackerSession);
+        Assert.Null(result);
+        Assert.All(await context.RefreshTokens.ToListAsync(), token => Assert.NotNull(token.RevokedAt));
+        Assert.Equal(2, await context.RefreshTokens.CountAsync(token => token.RevokeReason == RefreshTokenRevokeReason.ReuseDetected));
+        Assert.NotEqual(stampBefore, user.SecurityStamp);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WithExpiredToken_ReturnsNullAndKeepsOtherSessions()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = await AddUserAsync(context, "reuse-expired@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var expired = await service.LoginAsync(new LoginRequest { Email = "reuse-expired@gmail.com", Password = "senha123" });
+        var expiredToken = await context.RefreshTokens.SingleAsync();
+        expiredToken.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        await context.SaveChangesAsync();
+        await service.LoginAsync(new LoginRequest { Email = "reuse-expired@gmail.com", Password = "senha123" });
+        var stampBefore = user.SecurityStamp;
+
+        // Act
+        var result = await service.RefreshAsync(expired!.RefreshToken);
+
+        // Assert
+        // An expired token is only invalid: nothing is revoked, not even the expired token itself.
+        Assert.Null(result);
+        Assert.Equal(0, await context.RefreshTokens.CountAsync(token => token.RevokedAt != null));
+        Assert.Equal(stampBefore, user.SecurityStamp);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WithTokenRevokedByLogout_ReturnsNullAndKeepsOtherSessions()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = await AddUserAsync(context, "reuse-logout@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var loggedOut = await service.LoginAsync(new LoginRequest { Email = "reuse-logout@gmail.com", Password = "senha123" });
+        await service.LoginAsync(new LoginRequest { Email = "reuse-logout@gmail.com", Password = "senha123" });
+        await service.LogoutAsync(loggedOut!.RefreshToken);
+        var stampBefore = user.SecurityStamp;
+
+        // Act
+        var result = await service.RefreshAsync(loggedOut.RefreshToken);
+
+        // Assert
+        Assert.Null(result);
+        Assert.Equal(1, await context.RefreshTokens.CountAsync(token => token.RevokedAt == null));
+        Assert.Equal(stampBefore, user.SecurityStamp);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WithTokenRevokedByPasswordChange_KeepsTheNewSession()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = await AddUserAsync(context, "reuse-password@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        // An old device keeps this token, and the user changes the password on another device.
+        var oldDevice = await service.LoginAsync(new LoginRequest { Email = "reuse-password@gmail.com", Password = "senha123" });
+        await service.ChangePasswordAsync(user.Id, new ChangePasswordRequest
+        {
+            CurrentPassword = "senha123",
+            NewPassword = "novaSenha456",
+            ConfirmationPassword = "novaSenha456"
+        });
+        await service.LoginAsync(new LoginRequest { Email = "reuse-password@gmail.com", Password = "novaSenha456" });
+        var stampBefore = user.SecurityStamp;
+
+        // Act
+        var result = await service.RefreshAsync(oldDevice!.RefreshToken);
+
+        // Assert
+        Assert.Null(result);
+        Assert.Equal(1, await context.RefreshTokens.CountAsync(token => token.RevokedAt == null));
+        Assert.Equal(stampBefore, user.SecurityStamp);
+    }
+
     // LoginAsync creates a JWT, so these tests need the Jwt settings.
     private static AuthService CreateServiceWithJwt(ManagerDbContext context)
     {
@@ -169,7 +267,7 @@ public class AuthServiceTests
             })
             .Build();
 
-        return new AuthService(context, new PasswordHasher<User>(), configuration);
+        return new AuthService(context, new PasswordHasher<User>(), configuration, NullLogger<AuthService>.Instance);
     }
 
     // Counts every hash and verify, to prove that a too long password is never hashed.
