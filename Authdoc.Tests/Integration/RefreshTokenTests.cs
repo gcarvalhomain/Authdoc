@@ -2,7 +2,11 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Authdoc.Application.DTOs;
+using Authdoc.Data;
+using Authdoc.Models.Entities;
 using Authdoc.Responses;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Authdoc.Tests.Integration;
 
@@ -13,6 +17,24 @@ public class RefreshTokenTests : IClassFixture<AuthdocApiFactory>
     public RefreshTokenTests(AuthdocApiFactory factory)
     {
         _factory = factory;
+    }
+
+    // Moves the rotation of the user's rotated tokens one minute back, after the grace period,
+    // as if the token came back later.
+    private async Task MoveRotationsBeforeGracePeriodAsync(Guid userId)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<ManagerDbContext>();
+        var rotated = await context.RefreshTokens
+            .Where(token => token.UserId == userId && token.RevokeReason == RefreshTokenRevokeReason.Rotated)
+            .ToListAsync();
+
+        foreach (var token in rotated)
+        {
+            token.RevokedAt = token.RevokedAt!.Value.AddMinutes(-1);
+        }
+
+        await context.SaveChangesAsync();
     }
 
     [Fact]
@@ -64,9 +86,10 @@ public class RefreshTokenTests : IClassFixture<AuthdocApiFactory>
         // The attacker uses the stolen token first and gets a new pair of tokens.
         var attackerResponse = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = stolen.RefreshToken });
         var attacker = (await attackerResponse.Content.ReadFromJsonAsync<LoginResponse>())!;
+        await MoveRotationsBeforeGracePeriodAsync(attacker.User.Id);
 
         // Act
-        // The real user sends the same token again.
+        // The real user sends the same token again, after the grace period.
         var reuse = await client.PostAsJsonAsync("/api/auth/refresh", new { refreshToken = stolen.RefreshToken });
 
         // Assert

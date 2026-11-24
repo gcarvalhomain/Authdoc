@@ -168,18 +168,107 @@ public class AuthServiceTests
         await service.LoginAsync(new LoginRequest { Email = "reuse-rotated@gmail.com", Password = "senha123" });
         // The attacker uses the stolen token first and gets a new session.
         var attackerSession = await service.RefreshAsync(stolen!.RefreshToken);
+        await MoveRotationsBeforeGracePeriodAsync(context);
         var stampBefore = user.SecurityStamp;
 
         // Act
-        // The real user sends the same token again.
+        // The real user sends the same token again, after the grace period.
         var result = await service.RefreshAsync(stolen.RefreshToken);
 
         // Assert
+        // 3 tokens: the reused one, the attacker's new one and the other session's one.
         Assert.NotNull(attackerSession);
         Assert.Null(result);
         Assert.All(await context.RefreshTokens.ToListAsync(), token => Assert.NotNull(token.RevokedAt));
-        Assert.Equal(2, await context.RefreshTokens.CountAsync(token => token.RevokeReason == RefreshTokenRevokeReason.ReuseDetected));
+        Assert.Equal(3, await context.RefreshTokens.CountAsync(token => token.RevokeReason == RefreshTokenRevokeReason.ReuseDetected));
         Assert.NotEqual(stampBefore, user.SecurityStamp);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WithRotatedTokenInsideGracePeriod_ReturnsNullAndKeepsSessions()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = await AddUserAsync(context, "reuse-grace@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var login = await service.LoginAsync(new LoginRequest { Email = "reuse-grace@gmail.com", Password = "senha123" });
+        // A first tab refreshes...
+        var firstTab = await service.RefreshAsync(login!.RefreshToken);
+        var stampBefore = user.SecurityStamp;
+
+        // Act
+        // ...and a second tab sends the same token a moment later.
+        var secondTab = await service.RefreshAsync(login.RefreshToken);
+
+        // Assert
+        Assert.NotNull(firstTab);
+        Assert.Null(secondTab);
+        Assert.Equal(1, await context.RefreshTokens.CountAsync(token => token.RevokedAt == null));
+        Assert.Equal(stampBefore, user.SecurityStamp);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WithExpiredRotatedToken_ReturnsNullAndKeepsSessions()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = await AddUserAsync(context, "reuse-expired-rotated@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var old = await service.LoginAsync(new LoginRequest { Email = "reuse-expired-rotated@gmail.com", Password = "senha123" });
+        await service.RefreshAsync(old!.RefreshToken);
+        await MoveRotationsBeforeGracePeriodAsync(context);
+        var rotated = await context.RefreshTokens.SingleAsync(token => token.RevokeReason == RefreshTokenRevokeReason.Rotated);
+        rotated.ExpiresAt = DateTime.UtcNow.AddMinutes(-1);
+        await context.SaveChangesAsync();
+        var stampBefore = user.SecurityStamp;
+
+        // Act
+        var result = await service.RefreshAsync(old.RefreshToken);
+
+        // Assert
+        Assert.Null(result);
+        Assert.Equal(1, await context.RefreshTokens.CountAsync(token => token.RevokedAt == null));
+        Assert.Equal(stampBefore, user.SecurityStamp);
+    }
+
+    [Fact]
+    public async Task RefreshAsync_WithSameRotatedTokenTwice_EndsSessionsOnlyOnce()
+    {
+        // Arrange
+        using var context = CreateContext();
+        var user = await AddUserAsync(context, "reuse-twice@gmail.com");
+        var service = CreateServiceWithJwt(context);
+        var stolen = await service.LoginAsync(new LoginRequest { Email = "reuse-twice@gmail.com", Password = "senha123" });
+        await service.RefreshAsync(stolen!.RefreshToken);
+        await MoveRotationsBeforeGracePeriodAsync(context);
+        await service.RefreshAsync(stolen.RefreshToken);
+        // After the alarm, the user signs in again.
+        await service.LoginAsync(new LoginRequest { Email = "reuse-twice@gmail.com", Password = "senha123" });
+        var stampBefore = user.SecurityStamp;
+
+        // Act
+        var result = await service.RefreshAsync(stolen.RefreshToken);
+
+        // Assert
+        Assert.Null(result);
+        Assert.Equal(1, await context.RefreshTokens.CountAsync(token => token.RevokedAt == null));
+        Assert.Equal(stampBefore, user.SecurityStamp);
+    }
+
+    // Moves the rotation of every rotated token one minute back, after the grace period,
+    // as if the token came back later.
+    private static async Task MoveRotationsBeforeGracePeriodAsync(ManagerDbContext context)
+    {
+        var rotated = await context.RefreshTokens
+            .Where(token => token.RevokeReason == RefreshTokenRevokeReason.Rotated)
+            .ToListAsync();
+
+        foreach (var token in rotated)
+        {
+            token.RevokedAt = token.RevokedAt!.Value.AddMinutes(-1);
+        }
+
+        await context.SaveChangesAsync();
     }
 
     [Fact]

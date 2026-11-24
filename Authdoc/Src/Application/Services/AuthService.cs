@@ -113,8 +113,12 @@ public class AuthService
         // means that someone has a copy of it (the user or an attacker already has its successor).
         if (storedToken.RevokeReason == RefreshTokenRevokeReason.Rotated)
         {
-            await EndAllSessionsAfterReuseAsync(storedToken.UserId); // It is for a stolen refresh token to end the attacker's session too.
-            return null; // The same 401 as any invalid token, so the caller does not learn that the reuse was detected.
+            if (IsReuseAlarm(storedToken, DateTime.UtcNow))
+            {
+                await EndAllSessionsAfterReuseAsync(storedToken.UserId, storedToken.Id); // It is for a stolen refresh token to end the attacker's session too.
+            }
+
+            return null; // The same 401 as any invalid token, so the caller does not learn whether the reuse was detected.
         }
 
         // Expired, or revoked by a logout or a password change: not a sign of theft, only invalid.
@@ -166,18 +170,40 @@ public class AuthService
         }
     }
 
+    // Decides if a rotated token that came back is a sign of theft, or only an invalid token.
+    private bool IsReuseAlarm(RefreshToken rotatedToken, DateTime now)
+    {
+        // An expired token ends nothing. Without this, anyone with an old token of a user
+        // could sign that user out on every device, again and again.
+        if (rotatedToken.ExpiresAt <= now)
+        {
+            return false;
+        }
+
+        // A token used again a few seconds after its rotation is most likely a race or a retry:
+        // two tabs that refreshed together, or a refresh whose answer was lost on the network.
+        var graceSeconds = Math.Max(0, _configuration.GetValue("Jwt:RefreshTokenReuseGraceSeconds", 10));
+        return rotatedToken.RevokedAt < now.AddSeconds(-graceSeconds);
+    }
+
     // A rotated refresh token came back. Every active refresh token of the user is revoked, and a
     // new security stamp makes every access token stop working, so the attacker loses access too.
-    private async Task EndAllSessionsAfterReuseAsync(Guid userId)
+    private async Task EndAllSessionsAfterReuseAsync(Guid userId, Guid reusedTokenId)
     {
         for (var attempt = 1; ; attempt++)
         {
             var now = DateTime.UtcNow;
             var user = await _context.Users.FirstOrDefaultAsync(user => user.Id == userId);
-            if (user is null)
+            var reusedToken = await _context.RefreshTokens.FirstOrDefaultAsync(token => token.Id == reusedTokenId);
+
+            // Another request already fired the alarm for this token, or the user was deleted.
+            if (user is null || reusedToken?.RevokeReason != RefreshTokenRevokeReason.Rotated)
             {
                 return;
             }
+
+            // It is for each token to fire the alarm only once, so an old token is not a button that signs the user out forever.
+            reusedToken.RevokeReason = RefreshTokenRevokeReason.ReuseDetected;
 
             var activeTokens = await _context.RefreshTokens
                 .Where(token => token.UserId == userId && token.RevokedAt == null)
