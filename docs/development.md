@@ -21,6 +21,15 @@ The settings that are not secret are in `Authdoc/appsettings.json`:
 | `RateLimiting:LoginPermitLimit` | `5` | Sign-in and password change, per minute per IP |
 | `RateLimiting:RegisterPermitLimit` | `5` | Sign-up, per minute per IP |
 | `RateLimiting:RefreshPermitLimit` | `30` | Refresh and logout, per minute per IP |
+| `FORWARDEDHEADERS_ENABLED` | `true` (`false` in `appsettings.Development.json`) | Reads the client IP from the `X-Forwarded-For` header of the Azure proxy (see below) |
+
+### Client IP behind the Azure proxy
+
+On Azure App Service, every request passes through Azure's front-end proxy, which adds the real client IP to the `X-Forwarded-For` header. Without help, the API would see the proxy, and the rate limit would count every client together.
+
+`FORWARDEDHEADERS_ENABLED` is a built-in ASP.NET Core switch (the environment variable `ASPNETCORE_FORWARDEDHEADERS_ENABLED`). When it is `true`, the framework adds the Forwarded Headers middleware first in the pipeline. It trusts the proxy in front of the API and reads only the last value of `X-Forwarded-For`, which is the one the proxy adds, so a fake value sent by a client is ignored.
+
+It is `false` in development: there is no proxy on your machine, so a client could send a new fake IP on every request and never reach the rate limit. Keep it `false` anywhere the API can be called without a proxy in front of it.
 
 The secrets are never in the repository. In development they come from [User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets); in any other environment, from environment variables:
 

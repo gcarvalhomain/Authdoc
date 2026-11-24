@@ -34,7 +34,7 @@ The `Admin` role manages accounts, but it gives no access to other users' docume
 
 ### Other protections
 
-- **Rate limiting** on sign-up, sign-in, password change, refresh and logout (see [API reference](api.md#limits)).
+- **Rate limiting** on sign-up, sign-in, password change, refresh and logout (see [API reference](api.md#limits)). Behind the Azure proxy it counts each real client IP (see [Development](development.md#client-ip-behind-the-azure-proxy)).
 - **Secrets outside the repository:** User Secrets in development, environment variables elsewhere (see [Development](development.md#configuration)).
 - **No internal details in errors:** an unexpected exception is logged in one place and answers `500 INTERNAL_ERROR`.
 - **Frontend:** the access token lives only in memory, and the page loads no fonts, scripts or styles from other servers.
@@ -46,7 +46,7 @@ The `Admin` role manages accounts, but it gives no access to other users' docume
 | A logout does not end the current JWT | The access token of that device keeps working for up to 60 minutes (its refresh token is already revoked) | A shorter token lifetime, or a list of revoked token ids |
 | The reuse grace period is a small blind spot | If the real user sends a stolen token within 10 seconds after the attacker used it, the alarm does not fire | A shorter `Jwt:RefreshTokenReuseGraceSeconds` (0 turns the grace period off) |
 | The refresh token is in `localStorage` | An XSS bug could read it | An `httpOnly` cookie set by the API |
-| Rate limiting is in memory and per IP | It resets on restart, is not shared between instances, and behind a proxy everyone can look like the same IP | `ForwardedHeaders` setup and a shared store (for example Redis) |
+| Rate limiting is in memory | It resets on restart and is not shared between instances | A shared store (for example Redis) when the API runs on more than one instance |
 | The email is not verified | Anyone can sign up with an email that is not theirs | A confirmation link before the first sign-in |
 | Sign-up tells whether an email is used | `409 EMAIL_ALREADY_IN_USE` lets anyone test emails | The same answer for every sign-up, and the result by email |
 | One database query per authenticated request | A small extra query (by primary key) on every request | A short cache if the load grows |

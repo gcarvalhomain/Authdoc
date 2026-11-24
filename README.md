@@ -136,7 +136,8 @@ The details and the known limitations are in [Security](docs/security.md).
 - [ ] Validity status of each document: `Valid`, `ExpiringSoon` (30 days or less) or `Expired`
 - [ ] File upload (PDF, JPG, PNG, up to 10 MB)
 - [x] Refresh token reuse detection
-- [ ] Before the deploy: rate limiting behind the Azure proxy, email confirmation
+- [x] Rate limiting per client IP behind the Azure proxy
+- [ ] Before the deploy: email confirmation
 - [ ] Production deploy on Azure, and the admin area in the web app
 - [ ] Expiry notifications
 
