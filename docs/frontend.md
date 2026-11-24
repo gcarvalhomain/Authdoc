@@ -72,7 +72,7 @@ The session code is in `frontend/src/api/session.ts` (the tokens) and `frontend/
 - **Sign out:** the app forgets the tokens at once and calls `POST /api/auth/logout`. The other devices stay signed in.
 - **Password change:** the API ends every session of the user, so the app signs out and asks for a new sign-in.
 - **Protected pages:** `RequireAuth` sends a user without a session to the sign-in page, and back to the same page after the sign-in.
-- **Known limitation:** any script on the page can read `localStorage`, so an XSS bug could steal the refresh token. Two tabs that refresh with the same token at almost the same moment get one new session; the other tab gets `401` (inside the API grace period) and is signed out. See [Security](security.md#known-limitations).
+- **Known limitation:** any script on the page can read `localStorage`, so an XSS bug could steal the refresh token. Two tabs that refresh at the same moment can also sign one of them out. See [Security](security.md#known-limitations).
 
 ## Structure
 
