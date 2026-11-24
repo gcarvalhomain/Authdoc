@@ -52,3 +52,13 @@ public class RateLimitedApiFactory : AuthdocApiFactory
     protected override int RefreshPermitLimit => 5;
     protected override int RegisterPermitLimit => 5;
 }
+
+// The same limits, with the X-Forwarded-For support turned off, as in development.
+public class RateLimitedWithoutProxyApiFactory : RateLimitedApiFactory
+{
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        base.ConfigureWebHost(builder);
+        builder.UseSetting("FORWARDEDHEADERS_ENABLED", "false");
+    }
+}
