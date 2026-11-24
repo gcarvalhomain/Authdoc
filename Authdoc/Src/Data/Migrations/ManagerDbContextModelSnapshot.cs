@@ -81,6 +81,9 @@ namespace Authdoc.Migrations
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("RevokeReason")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("RevokedAt")
                         .IsConcurrencyToken()
                         .HasColumnType("datetime2");

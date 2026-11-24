@@ -17,6 +17,7 @@ The settings that are not secret are in `Authdoc/appsettings.json`:
 | `Jwt:Issuer` / `Jwt:Audience` | `Authdoc` / `Users` | Checked in every token |
 | `Jwt:ExpirationInMinutes` | `60` | Lifetime of the access token |
 | `Jwt:RefreshTokenExpirationInDays` | `7` | Lifetime of the refresh token |
+| `Jwt:RefreshTokenReuseGraceSeconds` | `10` | A used refresh token that comes back within this time only gets `401`, without the reuse alarm |
 | `RateLimiting:LoginPermitLimit` | `5` | Sign-in and password change, per minute per IP |
 | `RateLimiting:RegisterPermitLimit` | `5` | Sign-up, per minute per IP |
 | `RateLimiting:RefreshPermitLimit` | `30` | Refresh and logout, per minute per IP |
@@ -90,7 +91,7 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | Email validation, the admin seed, and the rules of `AuthService` (too long passwords, logout, a refresh token used twice at the same time), `UserService` (last admin, role change, deletion) and `DocumentService` (each operation reaches only the owner's documents) |
+| Unit | Email validation, the admin seed, and the rules of `AuthService` (too long passwords, logout, a refresh token used twice at the same time, reuse detection), `UserService` (last admin, role change, deletion) and `DocumentService` (each operation reaches only the owner's documents) |
 | Integration | The whole API over HTTP with `WebApplicationFactory`: sign-up, sign-in, refresh, logout, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an in-memory database and their own settings, so they need neither SQL Server nor User Secrets. The frontend has no automated tests yet; `npm run lint` and `npm run build` check it.
