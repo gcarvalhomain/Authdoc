@@ -14,6 +14,7 @@ The `Admin` role manages accounts, but it gives no access to other users' docume
 - **A database check on every request.** After the signature, the API checks that the user still exists, still has the role in the token and still has the same security stamp. So a deleted user, a changed role or a changed password blocks the old token at once (`401 UNAUTHORIZED`).
 - **Security stamp.** A password change creates a new stamp, so every access token made before it stops working, on every device.
 - **Refresh token with rotation.** Each use returns a new refresh token and revokes the old one. Only its SHA-256 hash is in the database. `RevokedAt` is a concurrency token, so when two requests use the same refresh token at the same time, only one gets a new session.
+- **Reuse detection.** A normal client never sends a used refresh token again, so a rotated token that comes back means someone has a copy. The API then revokes every refresh token of the user and creates a new security stamp, so every session ends, the attacker's too. The answer is still `401 INVALID_REFRESH_TOKEN`, and the log gets a warning with the user id (never the token). Each token keeps the reason it was revoked (`Rotated`, `Logout`, `PasswordChange`, `ReuseDetected`), so a token from a logout or a password change only gets `401` and ends nothing else.
 
 ### Passwords
 
@@ -40,7 +41,7 @@ The `Admin` role manages accounts, but it gives no access to other users' docume
 | Limitation | Impact | Possible solution |
 |---|---|---|
 | A logout does not end the current JWT | The access token of that device keeps working for up to 60 minutes (its refresh token is already revoked) | A shorter token lifetime, or a list of revoked token ids |
-| A reused refresh token is only rejected | An old refresh token that comes back gets `401`, but the other sessions of that user stay active | Revoke all sessions of the user when an old token comes back (reuse detection) |
+| Reuse detection has no grace period | Two tabs that refresh with the same token at almost the same moment look like a reuse, and the user is signed out on every device | A few seconds of grace after a rotation |
 | The refresh token is in `localStorage` | An XSS bug could read it | An `httpOnly` cookie set by the API |
 | Rate limiting is in memory and per IP | It resets on restart, is not shared between instances, and behind a proxy everyone can look like the same IP | `ForwardedHeaders` setup and a shared store (for example Redis) |
 | The email is not verified | Anyone can sign up with an email that is not theirs | A confirmation link before the first sign-in |

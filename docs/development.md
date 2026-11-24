@@ -90,7 +90,7 @@ dotnet test
 
 | Type | What it covers |
 |---|---|
-| Unit | Email validation, the admin seed, and the rules of `AuthService` (too long passwords, logout, a refresh token used twice at the same time), `UserService` (last admin, role change, deletion) and `DocumentService` (each operation reaches only the owner's documents) |
+| Unit | Email validation, the admin seed, and the rules of `AuthService` (too long passwords, logout, a refresh token used twice at the same time, reuse detection), `UserService` (last admin, role change, deletion) and `DocumentService` (each operation reaches only the owner's documents) |
 | Integration | The whole API over HTTP with `WebApplicationFactory`: sign-up, sign-in, refresh, logout, password change, users, documents (including `404` for another user's document), pagination, rate limiting and error codes |
 
 The tests use an in-memory database and their own settings, so they need neither SQL Server nor User Secrets. The frontend has no automated tests yet; `npm run lint` and `npm run build` check it.

@@ -122,7 +122,7 @@ The full list of routes, rules and error codes is in the [API reference](docs/ap
 ## Security highlights
 
 - Every request checks in the database that the user of the token still exists, with the same role and the same **security stamp**. So a deleted user, a changed role or a changed password blocks old tokens at once.
-- Refresh tokens are stored only as hashes and work only once, even with two requests at the same time.
+- Refresh tokens are stored only as hashes and work only once, even with two requests at the same time. A used token that comes back ends every session of the user, because it means someone has a copy.
 - Every document query filters by the user id from the token, never from the request.
 - Secrets live in User Secrets or environment variables, never in the repository.
 
@@ -135,7 +135,8 @@ The details and the known limitations are in [Security](docs/security.md).
 - [x] Web app version 1 (account, password and documents)
 - [ ] Validity status of each document: `Valid`, `ExpiringSoon` (30 days or less) or `Expired`
 - [ ] File upload (PDF, JPG, PNG, up to 10 MB)
-- [ ] Before the deploy: rate limiting behind the Azure proxy, email confirmation, refresh token reuse detection
+- [x] Refresh token reuse detection
+- [ ] Before the deploy: rate limiting behind the Azure proxy, email confirmation
 - [ ] Production deploy on Azure, and the admin area in the web app
 - [ ] Expiry notifications
 

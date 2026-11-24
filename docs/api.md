@@ -104,6 +104,7 @@ Body of `POST` and `PUT`:
 - The JWT lives for 60 minutes. The refresh token lives for 7 days, works only once (each use returns a new one) and is stored only as a SHA-256 hash.
 - Logout revokes only the refresh token that was sent; the other sessions stay active. It always answers `204`, so it does not tell whether a token exists.
 - A password change revokes every refresh token of the user and makes every older JWT stop working.
+- A used refresh token that comes back is treated as stolen: every session of the user ends (all refresh tokens and all JWTs), and the answer is `401 INVALID_REFRESH_TOKEN`.
 - A role change or a user deletion works at once: the next request with an old token gets `401 UNAUTHORIZED`.
 
 ### Documents
