@@ -74,4 +74,4 @@
 ## Documentation
 - README, code, comments, commits and error messages are in English.
 - When endpoints, error codes, settings or business rules change,
-  update the README in the same PR.
+  update the README or the docs/ files in the same PR.

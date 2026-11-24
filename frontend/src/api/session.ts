@@ -10,7 +10,7 @@ import type { LoginResponse } from './types.ts'
 //
 // localStorage can be read by any script on the page, so an XSS bug could steal
 // the refresh token. The safer option is an httpOnly cookie, which needs changes
-// in the API. See "Session" in the README.
+// in the API. See "Session" in docs/frontend.md.
 
 const refreshTokenKey = 'authdoc.refreshToken'
 
